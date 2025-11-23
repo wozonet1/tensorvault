@@ -17,10 +17,19 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+#tensorVault Specific ignores
+.tensorvault/
+.tv-repo/
+# experiment temporary files
+experiments/**/data/
+experiments/**/.tensorvault/
+experiments/**/tmp/
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+
+go-git/
 # Go workspace file
 go.work
 

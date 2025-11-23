@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // -----------------------------------------------------------------------------
@@ -195,7 +193,6 @@ func main() {
 	fmt.Printf("Last cut point in A: %d\n", lastCutA)
 	fmt.Printf("Last cut point in B: %d\n", lastCutB)
 	fmt.Printf("Difference: %d bytes\n", lastCutB-lastCutA)
-	assert.Equal(nil, 5, lastCutB-lastCutA)
 	if lastCutB-lastCutA == 5 {
 		fmt.Println("\n✅ SUCCESS! The chunk boundaries realigned perfectly.")
 		fmt.Println("   Even though we shifted the start, the tail chunks remained identical.")
