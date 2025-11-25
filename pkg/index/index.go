@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -50,11 +51,12 @@ func NewIndex(indexPath string) (*Index, error) {
 
 // Add 更新一条记录
 func (i *Index) Add(path string, hash string, size int64) {
+	key := CleanPath(path) // <--- 统一清洗
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
 	i.Entries[path] = Entry{
-		Path:       path,
+		Path:       key,
 		Hash:       hash,
 		Size:       size,
 		ModifiedAt: time.Now(),
@@ -97,4 +99,14 @@ func (i *Index) IsEmpty() bool {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 	return len(i.Entries) == 0
+}
+func CleanPath(p string) string {
+	return filepath.ToSlash(filepath.Clean(p))
+}
+
+func (i *Index) Remove(path string) {
+	key := CleanPath(path)
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	delete(i.Entries, key)
 }
