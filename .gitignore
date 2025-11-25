@@ -26,6 +26,7 @@
 .tv-repo/
 .tv/
 tv
+tmp/
 !cmd/*
 # experiment temporary files
 experiments/**/data/

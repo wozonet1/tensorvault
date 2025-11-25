@@ -6,8 +6,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
+	"tensorvault/pkg/core"
 	"tensorvault/pkg/ingester"
 
 	"github.com/spf13/cobra"
@@ -17,52 +20,91 @@ var addCmd = &cobra.Command{
 	Use:   "add [file]",
 	Short: "Add file contents to the index",
 	Args:  cobra.ExactArgs(1),
+	// ... imports 增加 "path/filepath", "strings"
+
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// 1. 获取全局注入的 App
-		// (架构审查：这里我们使用了 Global Variable TV，符合 Cobra 惯例，但如果追求极致洁癖，可以用 Context)
 		if TV == nil {
-			return fmt.Errorf("application not initialized")
+			return fmt.Errorf("app not initialized")
 		}
+		targetPath := args[0] // 用户输入的路径，可能是文件，也可能是目录
 
-		filePath := args[0]
-
-		// 2. 构造 Ingester (使用注入的 Store)
+		// 1. 准备工作
+		ctx := context.Background()
 		ing := ingester.NewIngester(TV.Store)
-
-		fmt.Printf("🚀 Ingesting %s ...\n", filePath)
 		start := time.Now()
 
-		// 3. 打开文件
-		file, err := os.Open(filePath)
-		if err != nil {
-			return err
+		addedCount := 0
+		var totalSize int64 = 0
+
+		// 2. 定义遍历函数 (Walker)
+		// 这是一个闭包，它会处理每一个找到的文件
+		walkFn := func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return err // 权限错误等
+			}
+
+			// [安全防御]：永远跳过 .tv 目录
+			if d.IsDir() && d.Name() == ".tv" {
+				return filepath.SkipDir
+			}
+
+			// [安全防御]：跳过 .git 等隐藏目录 (可选，但建议加上)
+			if d.IsDir() && strings.HasPrefix(d.Name(), ".") && d.Name() != "." && d.Name() != ".." {
+				// return filepath.SkipDir // 如果你想默认忽略隐藏文件夹，取消注释
+			}
+
+			// 我们只处理文件，目录本身不需要 "add"，因为 TreeBuilder 会根据文件路径自动重建目录
+			if d.IsDir() {
+				return nil
+			}
+
+			node, err := processFile(ctx, ing, path)
+
+			if err != nil {
+				return fmt.Errorf("failed to ingest %s: %w", path, err)
+			}
+
+			// 更新暂存区 (内存操作，很快)
+			// 注意：path 是相对于运行目录的。最好将其转换为相对于 Repo Root 的路径。
+			// MVP 阶段假设用户就在 Root 运行，直接用 path。
+			TV.Index.Add(path, node.ID(), node.TotalSize)
+
+			addedCount++
+			totalSize += node.TotalSize
+			fmt.Printf("\rAdding: %s (%d)", path, node.TotalSize) // \r 简单进度条
+			return nil
 		}
-		defer file.Close()
 
-		// 4. 执行切分和存储 (Heavy Lifting)
-		node, err := ing.IngestFile(context.Background(), file)
-		if err != nil {
-			return err
+		// 3. 执行遍历
+		// 如果 targetPath 是文件，WalkDir 也会正常工作（只回调一次）
+		if err := filepath.WalkDir(targetPath, walkFn); err != nil {
+			return fmt.Errorf("walk failed: %w", err)
 		}
+		fmt.Println() // 换行
 
-		// 5. 【新增】更新暂存区 (Index)
-		// 注意：这里我们存的是相对路径还是绝对路径？
-		// 最佳实践：存储相对于 Repo Root 的路径。MVP 简单起见，存输入路径。
-		TV.Index.Add(filePath, node.ID(), node.TotalSize)
-
-		// 6. 持久化 Index
-		if err := TV.Index.Save(); err != nil {
-			return fmt.Errorf("failed to update index: %w", err)
+		// 4. 批量落盘 (Batch Commit to Index)
+		if addedCount > 0 {
+			if err := TV.Index.Save(); err != nil {
+				return fmt.Errorf("failed to save index: %w", err)
+			}
+			duration := time.Since(start)
+			fmt.Printf("✅ Added %d files (%d) in %s\n", addedCount, totalSize, duration)
+		} else {
+			fmt.Println("⚠️  No files added.")
 		}
-
-		duration := time.Since(start)
-		fmt.Printf("✅ Added to index in %s\n", duration)
-		fmt.Printf("📦 Hash: %s\n", node.ID())
 
 		return nil
 	},
 }
 
+func processFile(ctx context.Context, ing *ingester.Ingester, path string) (*core.FileNode, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close() // 这里用 defer 是 100% 安全的，函数返回即关闭
+	return ing.IngestFile(ctx, f)
+}
 func init() {
 	rootCmd.AddCommand(addCmd)
 }
