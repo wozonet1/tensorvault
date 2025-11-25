@@ -84,3 +84,17 @@ func (i *Index) Snapshot() map[string]Entry {
 	maps.Copy(snap, i.Entries)
 	return snap
 }
+
+func (i *Index) Reset() {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	// 重新初始化 map
+	i.Entries = make(map[string]Entry)
+}
+
+// IsEmpty 检查暂存区是否有内容
+func (i *Index) IsEmpty() bool {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+	return len(i.Entries) == 0
+}
