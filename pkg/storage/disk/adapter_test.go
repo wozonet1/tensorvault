@@ -64,3 +64,52 @@ func TestDiskAdapter(t *testing.T) {
 	content, _ := io.ReadAll(reader)
 	assert.Equal(t, []byte("hello world"), content)
 }
+
+func TestDiskAdapter_ExpandHash(t *testing.T) {
+	tmpDir := t.TempDir()
+	store, err := NewAdapter(tmpDir)
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	// 准备数据: 构造两个 Hash 前缀相似的对象
+	// Hash A: 1111aaaa...
+	objA := mockObject{id: "1111aaaa00000000000000000000000000000000000000000000000000000000", data: []byte("A")}
+	// Hash B: 1111bbbb...
+	objB := mockObject{id: "1111bbbb00000000000000000000000000000000000000000000000000000000", data: []byte("B")}
+	// Hash C: 2222cccc...
+	objC := mockObject{id: "2222cccc00000000000000000000000000000000000000000000000000000000", data: []byte("C")}
+
+	_ = store.Put(ctx, objA)
+	_ = store.Put(ctx, objB)
+	_ = store.Put(ctx, objC)
+
+	tests := []struct {
+		name      string
+		input     string
+		wantHash  string
+		wantErr   bool
+		errString string // 可选，用于匹配部分错误信息
+	}{
+		{"Exact match", objC.id, objC.id, false, ""},
+		{"Unique prefix (4 chars)", "2222", objC.id, false, ""},
+		{"Unique prefix (long)", "2222cccc", objC.id, false, ""},
+		{"Ambiguous prefix", "1111", "", true, "ambiguous"}, // 1111 同时匹配 A 和 B
+		{"Not found", "ffff", "", true, "not found"},
+		{"Too short", "123", "", true, "too short"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := store.ExpandHash(ctx, tt.input)
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errString != "" {
+					assert.Contains(t, err.Error(), tt.errString)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.wantHash, got)
+			}
+		})
+	}
+}

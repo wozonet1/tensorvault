@@ -60,3 +60,46 @@ func TestIndex_Concurrency(t *testing.T) {
 	// 如果没有 panic (Map并发读写错误)，就算通过
 	assert.Equal(t, 1, len(idx.Entries))
 }
+func TestIndex_Lifecycle(t *testing.T) {
+	// 1. Setup
+	tmpDir := t.TempDir()
+	idx, err := NewIndex(filepath.Join(tmpDir, "index.json"))
+	require.NoError(t, err)
+
+	// 2. Test Add & IsEmpty
+	assert.True(t, idx.IsEmpty())
+	idx.Add("src/main.go", "hash1", 100)
+	assert.False(t, idx.IsEmpty())
+
+	// 3. Test Remove
+	idx.Remove("src/main.go")
+	_, exists := idx.Entries["src/main.go"]
+	assert.False(t, exists, "Entry should be removed")
+
+	// 4. Test Remove Non-existent (Idempotency)
+	idx.Remove("ghost.file") // Should not panic
+
+	// 5. Test Reset
+	idx.Add("a", "h1", 1)
+	idx.Add("b", "h2", 2)
+	idx.Reset()
+	assert.True(t, idx.IsEmpty(), "Index should be empty after Reset")
+	assert.Equal(t, 0, len(idx.Entries))
+}
+
+func TestCleanPath(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"a/b/c", "a/b/c"},
+		{"./a/b", "a/b"},
+		{"a//b", "a/b"},
+		{"a/../b", "b"},
+		{".", "."},
+	}
+
+	for _, tt := range tests {
+		assert.Equal(t, tt.expected, CleanPath(tt.input))
+	}
+}

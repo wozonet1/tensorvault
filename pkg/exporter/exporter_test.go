@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tensorvault/pkg/core"
 	"tensorvault/pkg/ingester"
 	"tensorvault/pkg/storage/disk"
 )
@@ -53,4 +56,76 @@ func TestIngestAndExport_RoundTrip(t *testing.T) {
 	} else {
 		t.Fatal("❌ FAILURE: Data Mismatch! (数据损坏)")
 	}
+}
+
+// TestRestoreAndPrint_Integration 是一个集成测试
+// 它模拟了 Commit -> Tree -> FileNode -> Chunk 的完整链条
+func TestRestoreAndPrint_Integration(t *testing.T) {
+	// 1. Setup
+	store, err := disk.NewAdapter(t.TempDir())
+	require.NoError(t, err)
+	exp := NewExporter(store)
+	ctx := context.Background()
+
+	// 2. 手动构造一个微型 DAG
+	// Chunk
+	chunkData := []byte("hello restore")
+	chunk := core.NewChunk(chunkData)
+	_ = store.Put(ctx, chunk)
+
+	// FileNode
+	fileNode, _ := core.NewFileNode(int64(len(chunkData)), []core.ChunkLink{core.NewChunkLink(chunk)})
+	_ = store.Put(ctx, fileNode)
+
+	// Tree (Root -> "test.txt")
+	treeEntry := core.NewFileEntry("test.txt", fileNode.ID(), fileNode.TotalSize)
+	tree, _ := core.NewTree([]core.TreeEntry{treeEntry})
+	_ = store.Put(ctx, tree)
+
+	// Commit
+	commit, _ := core.NewCommit(tree.ID(), nil, "Tester", "Init")
+	_ = store.Put(ctx, commit)
+
+	// ---------------------------------------------------
+	// Test A: RestoreTree (Checkout Logic)
+	// ---------------------------------------------------
+	restoreDir := t.TempDir()
+	callbackCalled := false
+
+	err = exp.RestoreTree(ctx, tree.ID(), restoreDir, func(path string, hash string, size int64) {
+		callbackCalled = true
+		assert.Equal(t, fileNode.ID(), hash)
+		assert.Contains(t, path, "test.txt")
+	})
+	require.NoError(t, err)
+	assert.True(t, callbackCalled, "Callback should be triggered")
+
+	// 验证文件内容
+	restoredContent, _ := os.ReadFile(filepath.Join(restoreDir, "test.txt"))
+	assert.Equal(t, chunkData, restoredContent)
+
+	// ---------------------------------------------------
+	// Test B: PrintObject (Log/Cat Logic)
+	// ---------------------------------------------------
+	var buf bytes.Buffer
+
+	// Case 1: Print Commit
+	buf.Reset()
+	err = exp.PrintObject(ctx, commit.ID(), &buf)
+	require.NoError(t, err)
+	assert.Contains(t, buf.String(), "Type:    Commit")
+	assert.Contains(t, buf.String(), "Tester")
+
+	// Case 2: Print Tree
+	buf.Reset()
+	err = exp.PrintObject(ctx, tree.ID(), &buf)
+	require.NoError(t, err)
+	assert.Contains(t, buf.String(), "Type: Tree")
+	assert.Contains(t, buf.String(), "test.txt")
+
+	// Case 3: Print FileNode
+	buf.Reset()
+	err = exp.PrintObject(ctx, fileNode.ID(), &buf)
+	require.NoError(t, err)
+	assert.Contains(t, buf.String(), "Type:      FileNode")
 }
