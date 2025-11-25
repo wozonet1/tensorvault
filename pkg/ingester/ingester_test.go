@@ -42,7 +42,7 @@ func TestIngestFlow(t *testing.T) {
 	assert.True(t, exists, "FileNode 应该被持久化")
 
 	// 检查第一个 Chunk 是否存在
-	firstChunkHash := fileNode.Chunks[0].Hash.Hash
+	firstChunkHash := fileNode.Chunks[0].Cid.Hash
 	exists, _ = store.Has(ctx, firstChunkHash)
 	assert.True(t, exists, "Chunk 应该被持久化")
 }

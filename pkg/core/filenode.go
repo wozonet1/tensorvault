@@ -2,7 +2,7 @@ package core
 
 // ChunkLink 描述了 FileNode 对底层 Chunk 的引用
 type ChunkLink struct {
-	Hash Link `cbor:"h"` // CHANGE: string -> Link
+	Cid  Link `cbor:"h"` // CHANGE: string -> Link
 	Size int  `cbor:"s"` // 这个 Chunk 的大小 (关键：用于计算 offset)
 }
 
@@ -10,7 +10,7 @@ type ChunkLink struct {
 func NewChunkLink(c *Chunk) ChunkLink {
 	return ChunkLink{
 		// 自动封装 ID 为 Link 类型
-		Hash: NewLink(c.ID()),
+		Cid: NewLink(c.ID()),
 
 		// 自动提取大小 (注意类型转换，如果 ChunkLink.Size 是 int)
 		Size: int(c.Size()),

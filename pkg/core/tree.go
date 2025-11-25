@@ -12,7 +12,7 @@ const (
 type TreeEntry struct {
 	Name string    `cbor:"n"`
 	Type EntryType `cbor:"t"`
-	Hash Link      `cbor:"h"`
+	Cid  Link      `cbor:"h"`
 	Size int64     `cbor:"s"`
 }
 
@@ -64,7 +64,7 @@ func NewTreeEntryFromObject(name string, child Object) (TreeEntry, error) {
 	return TreeEntry{
 		Name: name,
 		Type: entryType,
-		Hash: NewLink(child.ID()),
+		Cid:  NewLink(child.ID()),
 		Size: size,
 	}, nil
 }

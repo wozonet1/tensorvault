@@ -119,8 +119,8 @@ func TestCanonical_Encoding(t *testing.T) {
 
 func TestFileNode_RoundTrip(t *testing.T) {
 	chunks := []ChunkLink{
-		{Hash: NewLink(mockHash("chunk1")), Size: 1024},
-		{Hash: NewLink(mockHash("chunk2")), Size: 2048},
+		{Cid: NewLink(mockHash("chunk1")), Size: 1024},
+		{Cid: NewLink(mockHash("chunk2")), Size: 2048},
 	}
 
 	node, err := NewFileNode(3072, chunks)
@@ -137,7 +137,7 @@ func TestFileNode_RoundTrip(t *testing.T) {
 	assert.Equal(t, int64(3072), node2.TotalSize)
 	assert.Equal(t, 2, len(node2.Chunks))
 	// 验证 Hash 是否还原成功
-	assert.Equal(t, chunks[0].Hash.Hash, node2.Chunks[0].Hash.Hash)
+	assert.Equal(t, chunks[0].Cid.Hash, node2.Chunks[0].Cid.Hash)
 }
 
 func TestCommit_Timestamp_Type(t *testing.T) {
