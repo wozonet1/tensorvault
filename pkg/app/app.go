@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"tensorvault/pkg/index"
+	"tensorvault/pkg/refs"
 	"tensorvault/pkg/storage"
 	"tensorvault/pkg/storage/disk"
 
@@ -17,7 +18,7 @@ import (
 type App struct {
 	Store storage.Store
 	Index *index.Index
-
+	Refs  *refs.Manager
 	// 如果未来有 Logger, Config 对象，也放这里
 	RepoPath string
 }
@@ -54,9 +55,12 @@ func NewApp() (*App, error) {
 		return nil, fmt.Errorf("failed to load index: %w", err)
 	}
 
+	refMgr := refs.NewManager(repoPath)
+
 	return &App{
 		Store:    store,
 		Index:    idx,
+		Refs:     refMgr,
 		RepoPath: repoPath,
 	}, nil
 }
