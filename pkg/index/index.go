@@ -4,6 +4,7 @@ package index
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"sync"
 	"time"
@@ -72,4 +73,14 @@ func (i *Index) Save() error {
 	}
 
 	return os.WriteFile(i.path, data, 0644)
+}
+
+// Snapshot 返回当前 Entry 的副本，用于并发安全的读取
+func (i *Index) Snapshot() map[string]Entry {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
+	snap := make(map[string]Entry, len(i.Entries))
+	maps.Copy(snap, i.Entries)
+	return snap
 }
