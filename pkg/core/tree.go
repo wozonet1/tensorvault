@@ -1,7 +1,5 @@
 package core
 
-import "fmt"
-
 type EntryType string
 
 const (
@@ -39,34 +37,26 @@ func NewTree(entries []TreeEntry) (*Tree, error) {
 	return t, nil
 }
 
-// NewTreeEntryFromObject 自动根据子对象生成条目
-func NewTreeEntryFromObject(name string, child Object) (TreeEntry, error) {
-	var entryType EntryType
-	var size int64
-
-	switch n := child.(type) { // 使用 Type Switch
-	case *FileNode:
-		entryType = EntryFile
-		size = n.TotalSize // 只有文件有逻辑大小
-	case *Chunk:
-		entryType = EntryFile // 这种情况比较少见，但也兼容
-		size = n.Size()
-	case *Tree:
-		entryType = EntryDir
-		size = 0 // 目录大小通常记为 0，或者你可以存子节点数量
-	case *Commit:
-		// Commit 通常不会作为 Tree 的子节点，这在逻辑上可能是不合法的
-		return TreeEntry{}, fmt.Errorf("commit cannot be an entry inside a tree")
-	default:
-		return TreeEntry{}, fmt.Errorf("unsupported object type: %s", child.Type())
-	}
-
+// NewFileEntry 创建一个文件类型的目录项
+// 它封装了 Link 的创建逻辑
+func NewFileEntry(name string, hash string, size int64) TreeEntry {
 	return TreeEntry{
 		Name: name,
-		Type: entryType,
-		Cid:  NewLink(child.ID()),
+		Type: EntryFile,
+		Cid:  NewLink(hash), // 自动封装 Link
 		Size: size,
-	}, nil
+	}
+}
+
+// NewDirEntry 创建一个目录类型的目录项
+// 强制规定目录大小为 0 (或者未来你可以改为累加大小，只需改这里一处)
+func NewDirEntry(name string, hash string) TreeEntry {
+	return TreeEntry{
+		Name: name,
+		Type: EntryDir,
+		Cid:  NewLink(hash),
+		Size: 0,
+	}
 }
 
 func (t *Tree) Type() ObjectType { return TypeTree }

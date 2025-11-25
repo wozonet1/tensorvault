@@ -3,6 +3,7 @@ package treebuilder
 import (
 	"context"
 	"fmt"
+	"path"
 	"sort"
 	"strings"
 
@@ -52,28 +53,52 @@ func newDirNode(name string) *node {
 	}
 }
 
-// addFile 将一个文件路径插入到内存树中
-// 例如 path="a/b/c.txt" -> 递归创建 a, b, 然后在 b 下创建 c.txt
-func (n *node) addFile(path string, entry index.Entry) {
-	parts := strings.Split(path, "/")
+// mkdirP 递归查找或创建目录节点，返回目标目录的 node 指针
+// 输入: "a/b/c" -> 返回 c 的节点
+// 输入: "" 或 "." -> 返回 n (root) 自身
+func (n *node) mkdirP(dirPath string) *node {
+	// Base Case: 根目录
+	if dirPath == "" || dirPath == "." {
+		return n
+	}
+
+	parts := strings.Split(dirPath, "/")
 	current := n
 
-	// 遍历路径中的目录部分
-	for _, part := range parts[:len(parts)-1] {
+	for _, part := range parts {
+		// 防御性编程：防止路径中有双斜杠 a//b 导致空字符串
+		if part == "" {
+			continue
+		}
+
 		if _, exists := current.children[part]; !exists {
 			current.children[part] = newDirNode(part)
 		}
 		current = current.children[part]
 	}
 
-	// 创建文件节点
-	fileName := parts[len(parts)-1]
+	return current
+}
+
+func (n *node) addFile(fullPath string, entry index.Entry) {
+	// 1. 分离目录和文件名
+	// path.Split("a/b/c.txt") -> dir="a/b/", file="c.txt"
+	// path.Split("readme.md") -> dir="",       file="readme.md"
+	dir, fileName := path.Split(fullPath)
+
+	// 2. 清理路径 (去掉 path.Split 留下的尾部斜杠)
+	dir = strings.TrimSuffix(dir, "/")
+
+	// 3. 获取父节点 (语义非常清晰：去把目录建好，把爸爸给我)
+	parentNode := n.mkdirP(dir)
+
+	// 4. 挂载文件节点
 	fileNode := &node{
 		name:  fileName,
 		isDir: false,
-		entry: entry, // 保存 Index 中的元数据 (Hash, Size)
+		entry: entry,
 	}
-	current.children[fileName] = fileNode
+	parentNode.children[fileName] = fileNode
 }
 
 // writeNode 递归地将内存节点转换为 core.Tree 并写入存储 (核心算法)
@@ -103,25 +128,15 @@ func (b *Builder) writeNode(ctx context.Context, n *node) (string, error) {
 			return "", err
 		}
 
-		// 2. 构造 TreeEntry
-		mode := core.EntryFile
+		var entry core.TreeEntry
 		if childNode.isDir {
-			mode = core.EntryDir
+			// 目录：只需传名字和 Hash，Size 内部自动处理
+			entry = core.NewDirEntry(name, childHash)
+		} else {
+			// 文件：传入名字、Hash 和从 Index 拿到的 Size
+			entry = core.NewFileEntry(name, childHash, childNode.entry.Size)
 		}
-
-		// 注意：如果是目录，Size 怎么算？通常 Git 目录 Size 为 0，或者累加。
-		// 这里简单起见，目录 Size 设为 0，文件 Size 从 Index 获取
-		size := int64(0)
-		if !childNode.isDir {
-			size = childNode.entry.Size
-		}
-
-		entries = append(entries, core.TreeEntry{
-			Name: name,
-			Type: mode,
-			Cid:  core.NewLink(childHash), // 使用重构后的 Cid
-			Size: size,
-		})
+		entries = append(entries, entry)
 	}
 
 	// 3. 创建 core.Tree 对象
