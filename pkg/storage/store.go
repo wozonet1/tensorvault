@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("object not found")
+	ErrNotFound      = errors.New("object not found")
+	ErrAmbiguousHash = errors.New("ambiguous hash prefix")
 )
 
 // Store defines the interface for a storage backend.
@@ -29,4 +30,9 @@ type Store interface {
 
 	// Delete (可选，MVP 阶段可以先不实现，因为 CAS 通常只增不删)
 	// Delete(ctx context.Context, hash string) error
+
+	// ExpandHash 将短哈希前缀扩展为完整哈希
+	// 如果匹配到 0 个，返回 ( "", ErrNotFound )
+	// 如果匹配到 > 1 个，返回 ( "", ErrAmbiguousHash )
+	ExpandHash(ctx context.Context, shortHash string) (string, error)
 }

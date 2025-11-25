@@ -6,43 +6,38 @@ import (
 	"os"
 
 	"tensorvault/pkg/exporter"
-	"tensorvault/pkg/storage/disk"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var catCmd = &cobra.Command{
-	Use:   "cat [hash]",
-	Short: "Show file content by hash",
-	Long:  `Retrieve the file content from the repository using its Merkle Root Hash and output to stdout.`,
-	Args:  cobra.ExactArgs(1), // 必须提供 Hash
+	Use:   "cat [hash-prefix]",
+	Short: "Inspect an object by hash",
+	Long:  `Pretty-print the contents of any object (Commit, Tree, FileNode) or resolve a short hash.`,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		hash := args[0]
-
-		storePath := viper.GetString("storage.path")
-		fmt.Printf("Using storage: %s\n", storePath) // 打印一下，方便调试
-		// 简单的检查：如果没 init 过，报错
-		if _, err := os.Stat(storePath); os.IsNotExist(err) {
-			return fmt.Errorf("not a tensorvault repository (run 'tv init' first)")
+		if TV == nil {
+			return fmt.Errorf("app not initialized")
 		}
-		store, err := disk.NewAdapter(storePath)
 
+		input := args[0]
+
+		// 1. 自动扩展短哈希
+		fullHash, err := TV.Store.ExpandHash(context.Background(), input)
 		if err != nil {
+			return err
 		}
 
-		// 2. 初始化 Exporter
-		exp := exporter.NewExporter(store)
-
-		// 3. 执行导出
-		// 【关键点】我们将 writer 设置为 os.Stdout
-		// 这样如果是文本文件，直接显示；如果是二进制，可以通过 > file.bin 重定向
-		err = exp.ExportFile(context.Background(), hash, os.Stdout)
-		if err != nil {
-			return fmt.Errorf("cat failed: %w", err)
+		// 如果扩展后的哈希和输入不一样，提示用户
+		if fullHash != input {
+			fmt.Printf("Ambiguous argument '%s': resolved to %s\n\n", input, fullHash)
 		}
 
-		return nil
+		// 2. 初始化 Exporter (复用 TV.Store)
+		exp := exporter.NewExporter(TV.Store)
+
+		// 3. 智能打印
+		return exp.PrintObject(context.Background(), fullHash, os.Stdout)
 	},
 }
 

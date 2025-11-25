@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"text/tabwriter"
+	"time"
 
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/storage"
@@ -70,4 +72,99 @@ func (e *Exporter) ExportFile(ctx context.Context, hash string, writer io.Writer
 	}
 
 	return nil
+}
+func (e *Exporter) PrintObject(ctx context.Context, hash string, writer io.Writer) error {
+	// 1. 读取原始字节
+	reader, err := e.store.Get(ctx, hash)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+
+	// 2. 尝试通用解码，探测类型
+	// 这是一个小的性能开销，但为了 UX 是值得的
+	var header struct {
+		TypeVal core.ObjectType `cbor:"t"`
+	}
+	if err := core.DecodeObject(data, &header); err != nil {
+		// 如果解不出来，说明是 Chunk (Raw Data)
+		fmt.Fprintf(writer, "Type: Chunk (Raw Data)\nSize: %d bytes\n\n", len(data))
+		// 对于 Chunk，为了防止终端乱码，我们只打印前 100 字节的 Hex
+		// 或者你可以选择直接输出内容，视需求而定
+		fmt.Fprintf(writer, "(Raw binary data not shown, use 'tv cat ... > file' to save)\n")
+		return nil
+	}
+
+	// 3. 根据类型分发处理
+	switch header.TypeVal {
+	case core.TypeCommit:
+		return printCommit(data, writer)
+	case core.TypeTree:
+		return printTree(data, writer)
+	case core.TypeFileNode:
+		// 如果是文件节点，还是走原来的“还原文件”逻辑吗？
+		// 为了 cat 命令的一致性，如果是 FileNode，我们应该输出它的元数据信息
+		// 如果用户想下载文件，应该用 `tv checkout` 或者 `tv cat --raw`
+		// 这里我们先展示元数据
+		return printFileNode(data, writer)
+	default:
+		return fmt.Errorf("unknown object type: %s", header.TypeVal)
+	}
+}
+
+// --- 辅助打印函数 ---
+
+func printCommit(data []byte, w io.Writer) error {
+	var c core.Commit
+	if err := core.DecodeObject(data, &c); err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "Type:    Commit\n")
+	fmt.Fprintf(w, "Tree:    %s\n", c.TreeHash.Hash)
+	for _, p := range c.Parents {
+		fmt.Fprintf(w, "Parent:  %s\n", p.Hash)
+	}
+	fmt.Fprintf(w, "Author:  %s\n", c.Author)
+	fmt.Fprintf(w, "Time:    %s\n", time.Unix(c.Timestamp, 0).Format(time.RFC3339))
+	fmt.Fprintf(w, "\n%s\n", c.Message)
+	return nil
+}
+
+func printTree(data []byte, w io.Writer) error {
+	var t core.Tree
+	if err := core.DecodeObject(data, &t); err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "Type: Tree\n\n")
+
+	// 使用 tabwriter 对齐输出 (像 git ls-tree)
+	tw := tabwriter.NewWriter(w, 0, 0, 3, ' ', 0)
+	for _, entry := range t.Entries {
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", entry.Type, entry.Cid.Hash[:8], entry.Name, fmtSize(entry.Size))
+	}
+	tw.Flush()
+	return nil
+}
+
+func printFileNode(data []byte, w io.Writer) error {
+	var f core.FileNode
+	if err := core.DecodeObject(data, &f); err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "Type:      FileNode (ADL)\n")
+	fmt.Fprintf(w, "TotalSize: %d bytes\n", f.TotalSize)
+	fmt.Fprintf(w, "Chunks:    %d\n", len(f.Chunks))
+	return nil
+}
+
+func fmtSize(s int64) string {
+	if s == 0 {
+		return "-"
+	}
+	return fmt.Sprintf("%d", s)
 }

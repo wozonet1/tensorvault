@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/storage"
@@ -99,4 +100,51 @@ func (s *Adapter) Has(ctx context.Context, hash string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func (s *Adapter) ExpandHash(ctx context.Context, short string) (string, error) {
+	// 1. 长度检查：为了性能和歧义控制，至少需要 4 位
+	if len(short) < 4 {
+		return "", fmt.Errorf("hash prefix too short (min 4 chars)")
+	}
+
+	// 2. 确定分片目录
+	// hash: "a8fd..." -> dir: "root/objects/a8"
+	shardDir := filepath.Join(s.rootPath, short[:2])
+
+	// 如果连分片目录都不存在，肯定没有
+	entries, err := os.ReadDir(shardDir)
+	if os.IsNotExist(err) {
+		return "", storage.ErrNotFound
+	}
+	if err != nil {
+		return "", err
+	}
+
+	// 3. 寻找匹配项
+	// 目标文件名后缀：short[2:]
+	suffixPrefix := short[2:]
+	var matches []string
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasPrefix(name, suffixPrefix) {
+			// 拼凑回完整的 hash: shard(2) + filename(62)
+			fullHash := short[:2] + name
+			matches = append(matches, fullHash)
+		}
+	}
+
+	// 4. 结果判定
+	if len(matches) == 0 {
+		return "", storage.ErrNotFound
+	}
+	if len(matches) > 1 {
+		return "", fmt.Errorf("%w: %v", storage.ErrAmbiguousHash, matches)
+	}
+
+	return matches[0], nil
 }

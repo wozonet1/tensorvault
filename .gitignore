@@ -19,7 +19,7 @@
 *.out
 
 *.png
-
+*.txt
 !docs/**/*.png
 #tensorVault Specific ignores
 .tensorvault/
