@@ -52,7 +52,7 @@ func TestTreeBuilder(t *testing.T) {
 }
 
 // 辅助 Mock
-func mockHash(s string) string {
+func mockHash(_ string) string {
 	// 简单的占位符，实际需用真实 SHA256
 	// 为了测试跑通，这里用 core 里同样的逻辑或随便填合法的 64字符 Hex
 	return "0000000000000000000000000000000000000000000000000000000000001111"
