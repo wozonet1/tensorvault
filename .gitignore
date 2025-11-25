@@ -17,9 +17,16 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+*.png
+
+!docs/**/*.png
 #tensorVault Specific ignores
 .tensorvault/
 .tv-repo/
+.tv/
+./tv
+
 # experiment temporary files
 experiments/**/data/
 experiments/**/.tensorvault/
