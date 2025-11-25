@@ -9,8 +9,8 @@ type Commit struct {
 	TypeVal ObjectType `cbor:"t"`
 
 	// CHANGE: 使用 Link 类型
-	TreeHash Link   `cbor:"th"`
-	Parents  []Link `cbor:"p"`
+	TreeCid Link   `cbor:"th"`
+	Parents []Link `cbor:"p"`
 
 	Author  string `cbor:"a"`
 	Message string `cbor:"m"`
@@ -28,7 +28,7 @@ func NewCommit(treeHash string, parents []string, author, msg string) (*Commit, 
 
 	c := &Commit{
 		TypeVal:   TypeCommit,
-		TreeHash:  NewLink(treeHash), // 转换
+		TreeCid:   NewLink(treeHash), // 转换
 		Parents:   parentLinks,
 		Author:    author,
 		Message:   msg,

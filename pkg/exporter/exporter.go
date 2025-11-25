@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"text/tabwriter"
 	"time"
 
@@ -125,7 +127,7 @@ func printCommit(data []byte, w io.Writer) error {
 		return err
 	}
 	fmt.Fprintf(w, "Type:    Commit\n")
-	fmt.Fprintf(w, "Tree:    %s\n", c.TreeHash.Hash)
+	fmt.Fprintf(w, "Tree:    %s\n", c.TreeCid.Hash)
 	for _, p := range c.Parents {
 		fmt.Fprintf(w, "Parent:  %s\n", p.Hash)
 	}
@@ -167,4 +169,63 @@ func fmtSize(s int64) string {
 		return "-"
 	}
 	return fmt.Sprintf("%d", s)
+}
+
+type RestoreCallback func(path string, hash string, size int64)
+
+// RestoreTree 递归地将 Merkle Tree 还原到目标目录
+func (e *Exporter) RestoreTree(ctx context.Context, treeHash string, targetDir string, onRestore RestoreCallback) error {
+	// 1. 获取 Tree 对象
+	reader, err := e.store.Get(ctx, treeHash)
+	if err != nil {
+		return fmt.Errorf("failed to get tree %s: %w", treeHash, err)
+	}
+
+	treeBytes, err := io.ReadAll(reader)
+	reader.Close()
+	if err != nil {
+		return err
+	}
+
+	var tree core.Tree
+	if err := core.DecodeObject(treeBytes, &tree); err != nil {
+		return fmt.Errorf("failed to decode tree: %w", err)
+	}
+
+	// 2. 遍历 Tree Entries
+	for _, entry := range tree.Entries {
+		fullPath := filepath.Join(targetDir, entry.Name)
+
+		if entry.Type == core.EntryDir {
+			// A. 处理目录：创建目录 -> 递归
+			if err := os.MkdirAll(fullPath, 0755); err != nil {
+				return fmt.Errorf("failed to create dir %s: %w", fullPath, err)
+			}
+			// 递归调用
+			if err := e.RestoreTree(ctx, entry.Cid.Hash, fullPath, onRestore); err != nil {
+				return err
+			}
+		} else {
+			// B. 处理文件：导出文件 -> 触发回调
+			// 创建/覆盖文件
+			file, err := os.Create(fullPath)
+			if err != nil {
+				return fmt.Errorf("failed to create file %s: %w", fullPath, err)
+			}
+
+			// 复用已有的 ExportFile 逻辑 (流式写入)
+			if err := e.ExportFile(ctx, entry.Cid.Hash, file); err != nil {
+				file.Close()
+				return err
+			}
+			file.Close()
+
+			// 触发回调 (通知上层更新 Index)
+			if onRestore != nil {
+				onRestore(fullPath, entry.Cid.Hash, entry.Size)
+			}
+		}
+	}
+
+	return nil
 }

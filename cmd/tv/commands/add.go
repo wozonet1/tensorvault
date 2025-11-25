@@ -43,11 +43,7 @@ var addCmd = &cobra.Command{
 
 			err := filepath.WalkDir(targetPath, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
-					// 如果用户指定的文件不存在，这里会报错，我们应该允许这种情况吗？
-					// 如果是 `tv add deleted_file`，WalkDir 会直接报错。
-					// 这种情况下我们应该忽略 Walk 错误，交给后面的 Prune 逻辑去处理删除吗？
-					// Git 的行为：如果显式指定不存在的文件，报错。如果目录遍历，忽略。
-					// MVP 简单处理：如果是目录遍历中的错误，忽略；如果是根参数错误，让它报。
+
 					if path == targetPath {
 						return err
 					}
