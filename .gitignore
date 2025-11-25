@@ -25,8 +25,8 @@
 .tensorvault/
 .tv-repo/
 .tv/
-./tv
-
+tv
+!cmd/*
 # experiment temporary files
 experiments/**/data/
 experiments/**/.tensorvault/
