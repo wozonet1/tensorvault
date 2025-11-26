@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"tensorvault/pkg/core"
+	"tensorvault/pkg/ignore"
 	"tensorvault/pkg/index"
 	"tensorvault/pkg/ingester"
 
@@ -36,44 +37,70 @@ var addCmd = &cobra.Command{
 		removedCount := 0
 		var totalSize int64 = 0
 
+		wd, _ := os.Getwd()
+		matcher, err := ignore.NewMatcher(wd)
+		if err != nil {
+			return err
+		}
 		// 1. 遍历并添加/更新文件 (Ingestion Phase)
 		for _, targetArg := range args {
 			// 清洗用户输入的路径
 			targetPath := index.CleanPath(targetArg)
-
-			err := filepath.WalkDir(targetPath, func(path string, d os.DirEntry, err error) error {
+			absTarget, err := filepath.Abs(targetPath)
+			if err != nil {
+				return fmt.Errorf("failed to get absolute path for %s: %w", targetArg, err)
+			}
+			err = filepath.WalkDir(absTarget, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 
-					if path == targetPath {
+					if path == absTarget {
 						return err
 					}
 					return nil // 忽略访问受限的子文件
 				}
 
-				// 安全防御
-				if d.IsDir() {
-					if d.Name() == ".tv" || d.Name() == ".git" {
+				relPath, err := filepath.Rel(wd, path)
+				if err != nil {
+					return fmt.Errorf("failed to calculate relative path: %w", err)
+				}
+
+				prune := func() error {
+					if d.IsDir() {
 						return filepath.SkipDir
 					}
-					return nil // 目录本身不入库，只入文件
+					return nil
+				}
+
+				// 如果 relPath 包含 ".."，说明用户试图 add 仓库外面的文件
+				if strings.HasPrefix(relPath, "..") {
+					return prune()
+				}
+
+				//  检查忽略
+				if matcher.Matches(relPath) {
+					return prune()
+				}
+
+				if d.IsDir() {
+					return nil
 				}
 
 				// 核心：Ingest
 				node, err := processFile(ctx, ing, path)
 				if err != nil {
-					return fmt.Errorf("ingest %s failed: %w", path, err)
+					return fmt.Errorf("ingest %s failed: %w", relPath, err)
 				}
 
 				// 更新 Index
-				TV.Index.Add(path, node.ID(), node.TotalSize)
+				TV.Index.Add(relPath, node.ID(), node.TotalSize)
 
 				// 【关键】标记为“存活”
-				cleanPath := index.CleanPath(path)
+				cleanPath := index.CleanPath(relPath)
 				visited[cleanPath] = true
 
 				addedCount++
 				totalSize += node.TotalSize
-				fmt.Printf("\rUpdated: %s", path)
+				fmt.Printf("\rUpdated: %s", relPath)
 				return nil
 			})
 
