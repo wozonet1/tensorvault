@@ -1,0 +1,17 @@
+# 存储后端配置
+storage:
+  # 选项: "disk" 或 "s3"
+  type: "s3"
+
+  # S3 详细配置 (连接本地 MinIO)
+  s3:
+    endpoint: "http://localhost:9000"
+    region: "us-east-1"
+    bucket: "tensorvault-dev"
+    access_key_id: "admin"
+    secret_access_key: "password"
+
+# 用户信息 (Commit 用)
+user:
+  name: "AI Architect"
+  email: "arch@tensorvault.io"

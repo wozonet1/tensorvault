@@ -61,7 +61,7 @@ func initConfig() {
 		// 如果用户指定了配置文件，直接用
 		viper.SetConfigFile(cfgFile)
 	} else {
-		// 否则，在用户主目录下找 .tv 文件夹
+		// 否则，按默认路径搜索配置文件
 		home, err := os.UserHomeDir()
 		if err != nil {
 			fmt.Println(err)
@@ -69,7 +69,9 @@ func initConfig() {
 		}
 
 		// 默认搜索路径: ~/.tv/
-		viper.AddConfigPath(filepath.Join(home, ".tv"))
+		viper.AddConfigPath(".")                        // 当前目录
+		viper.AddConfigPath(".tv")                      // 当前目录下的 .tv 隐藏目录 (推荐!)
+		viper.AddConfigPath(filepath.Join(home, ".tv")) // 全局目录
 		viper.SetConfigType("yaml")
 		viper.SetConfigName("config") // 找 config.yaml
 	}
