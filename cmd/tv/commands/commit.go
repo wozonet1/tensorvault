@@ -87,6 +87,14 @@ var commitCmd = &cobra.Command{
 			return fmt.Errorf("failed to store commit: %w", err)
 		}
 
+		fmt.Print("📝 Indexing metadata... ")
+		if err := TV.Repository.IndexCommit(ctx, commitObj); err != nil {
+			// 架构决策：如果索引失败，是回滚整个 Commit 还是只打印警告？
+			// 严格模式下应该报错，保证数据一致性。
+			return fmt.Errorf("failed to index commit to database: %w", err)
+		}
+		fmt.Println("Done")
+
 		// ---------------------------------------------------------
 		// Phase 4: 更新引用 (Ref Update)
 		// ---------------------------------------------------------

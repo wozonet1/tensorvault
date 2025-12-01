@@ -8,7 +8,6 @@ import (
 	"tensorvault/pkg/meta"
 )
 
-// TODO: read
 var (
 	// ErrNoHead 当仓库是新的（还没有 HEAD 记录）时返回
 	ErrNoHead = errors.New("HEAD not found (clean repo)")

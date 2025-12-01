@@ -41,11 +41,13 @@ type CommitModel struct {
 
 	// Parents: 使用 JSONB 存储父节点列表 (支持 Merge Commit 多父节点)
 	// 这是一个数组 ["hash1", "hash2"]
-	Parents datatypes.JSON `gorm:"type:jsonb"`
+	//为了测试,目前不用jsonb
+	//TODO: 未来调整测试,改回 jsonb,以及gin
+	Parents datatypes.JSON
 
 	// Meta: 存储 AI 训练超参数、Metrics、Tags 等非结构化数据
 	// 关键：使用 GIN 索引 (type:gin) 支持 {"accuracy": 0.9} 这种任意字段的毫秒级检索
-	Meta datatypes.JSON `gorm:"type:jsonb;index:idx_commit_meta,type:gin"`
+	Meta datatypes.JSON `gorm:"index:idx_commit_meta"`
 
 	CreatedAt time.Time
 }

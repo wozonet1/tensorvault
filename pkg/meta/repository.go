@@ -17,6 +17,7 @@ import (
 var (
 	ErrRefNotFound      = errors.New("reference not found")
 	ErrConcurrentUpdate = errors.New("concurrent update detected (CAS failed)")
+	ErrCommitNotFound   = errors.New("commit not found in metadata")
 )
 
 // Repository 封装所有对 SQL 数据库的操作
@@ -132,6 +133,22 @@ func (r *Repository) IndexCommit(ctx context.Context, c *core.Commit) error {
 		return fmt.Errorf("failed to index commit: %w", err)
 	}
 	return nil
+}
+
+func (r *Repository) GetCommit(ctx context.Context, hash string) (*CommitModel, error) {
+	var commit CommitModel
+	// 因为 Hash 是主键，查询非常快
+	err := r.db.GetConn().WithContext(ctx).
+		Where("hash = ?", hash).
+		First(&commit).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrCommitNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &commit, nil
 }
 
 // FindCommitsByAuthor 示例：利用 SQL 能力进行查询

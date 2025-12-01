@@ -29,7 +29,7 @@ func setupTestEnv(t *testing.T) *Manager {
 
 	// 3. 组装依赖
 	// 使用我们在 meta 包新加的辅助函数注入 DB
-	metaDB := meta.NewTestDB(db)
+	metaDB := meta.NewWithConn(db)
 	repo := meta.NewRepository(metaDB)
 	mgr := NewManager(repo)
 

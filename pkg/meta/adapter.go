@@ -66,6 +66,12 @@ func NewDB(ctx context.Context, cfg Config) (*DB, error) {
 	return &DB{conn: db}, nil
 }
 
+// NewWithConnection 允许使用现有的 GORM 连接初始化 DB。
+// 这对于依赖注入、复用连接池或单元测试非常有用。
+func NewWithConn(conn *gorm.DB) *DB {
+	return &DB{conn: conn}
+}
+
 // AutoMigrate 自动迁移表结构 (GORM 的黑魔法)
 // 传入我们定义的 Model Structs
 func (d *DB) AutoMigrate(models ...any) error {
@@ -74,9 +80,4 @@ func (d *DB) AutoMigrate(models ...any) error {
 
 func (d *DB) GetConn() *gorm.DB {
 	return d.conn
-}
-
-// NewTestDB 仅供测试使用，允许注入任意 GORM 连接 (如 SQLite)
-func NewTestDB(gormDB *gorm.DB) *DB {
-	return &DB{conn: gormDB}
 }
