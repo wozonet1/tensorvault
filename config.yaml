@@ -15,3 +15,11 @@ storage:
 user:
   name: "AI Architect"
   email: "arch@tensorvault.io"
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "tv_user"
+  password: "tv_password"
+  dbname: "tensorvault"
+  sslmode: "disable" # 本地开发通常不需要 SSL

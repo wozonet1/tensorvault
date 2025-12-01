@@ -1,47 +1,55 @@
 package refs
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
+
+	"tensorvault/pkg/meta"
 )
 
-var ErrNoHead = errors.New("HEAD not found (clean repo)")
+// TODO: read
+var (
+	// ErrNoHead 当仓库是新的（还没有 HEAD 记录）时返回
+	ErrNoHead = errors.New("HEAD not found (clean repo)")
 
-// Manager 负责管理引用 (Refs)，目前主要是 HEAD
+	// ErrStaleHead 当尝试更新 HEAD 但版本号不匹配时返回（并发冲突）
+	ErrStaleHead = errors.New("HEAD has changed since you last read it")
+)
+
+// Manager 负责管理引用 (Refs)
+// Phase 3: 底层由本地文件改为 PostgreSQL
 type Manager struct {
-	rootPath string
+	repo *meta.Repository
 }
 
-func NewManager(rootPath string) *Manager {
-	return &Manager{rootPath: rootPath}
+func NewManager(repo *meta.Repository) *Manager {
+	return &Manager{repo: repo}
 }
 
-// headPath 返回 .tv/HEAD 的物理路径
-func (m *Manager) headPath() string {
-	return filepath.Join(m.rootPath, "HEAD")
-}
-
-// GetHead 读取当前的 Commit Hash
-// 如果是新仓库（没提交过），返回 ErrNoHead
-func (m *Manager) GetHead() (string, error) {
-	data, err := os.ReadFile(m.headPath())
-	if os.IsNotExist(err) {
-		return "", ErrNoHead
-	}
+// GetHead 读取当前 HEAD 的 Hash 和 版本号
+// 返回: (hash, version, error)
+func (m *Manager) GetHead(ctx context.Context) (string, int64, error) {
+	ref, err := m.repo.GetRef(ctx, "HEAD")
 	if err != nil {
-		return "", fmt.Errorf("failed to read HEAD: %w", err)
+		if errors.Is(err, meta.ErrRefNotFound) {
+			return "", 0, ErrNoHead
+		}
+		return "", 0, fmt.Errorf("failed to get HEAD: %w", err)
 	}
-
-	// 清理换行符 (vim 编辑时可能会自动加 \n)
-	return strings.TrimSpace(string(data)), nil
+	return ref.CommitHash, ref.Version, nil
 }
 
-// UpdateHead 更新 HEAD 到新的 Commit Hash
-func (m *Manager) UpdateHead(commitHash string) error {
-	// 简单的原子写逻辑：直接覆盖
-	// 生产环境可能需要文件锁，MVP 暂略
-	return os.WriteFile(m.headPath(), []byte(commitHash), 0644)
+// UpdateHead 原子更新 HEAD
+// 必须提供 oldVersion 以进行乐观锁检查 (CAS)
+// 如果是第一次提交，oldVersion 传 0
+func (m *Manager) UpdateHead(ctx context.Context, newHash string, oldVersion int64) error {
+	err := m.repo.UpdateRef(ctx, "HEAD", newHash, oldVersion)
+	if err != nil {
+		if errors.Is(err, meta.ErrConcurrentUpdate) {
+			return ErrStaleHead
+		}
+		return fmt.Errorf("failed to update HEAD: %w", err)
+	}
+	return nil
 }

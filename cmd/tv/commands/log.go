@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// TODO: read
 var logCmd = &cobra.Command{
 	Use:   "log [commit-hash]",
 	Short: "Show commit logs",
@@ -37,7 +38,7 @@ var logCmd = &cobra.Command{
 			currentHash = fullHash
 		} else {
 			// 默认从 HEAD 开始
-			head, err := TV.Refs.GetHead()
+			head, _, err := TV.Refs.GetHead(ctx)
 			if errors.Is(err, refs.ErrNoHead) {
 				fmt.Println("No commits yet.")
 				return nil

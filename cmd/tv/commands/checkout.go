@@ -83,7 +83,9 @@ var checkoutCmd = &cobra.Command{
 		}
 
 		// 7. 更新 HEAD (Detached HEAD state)
-		if err := TV.Refs.UpdateHead(commitHash); err != nil {
+		// (注意：这在高并发下有竞态条件，但在 CLI 场景是可接受的)
+		_, currentVer, _ := TV.Refs.GetHead(ctx) // 忽略错误，如果不存在则 ver=0
+		if err := TV.Refs.UpdateHead(ctx, commitHash, currentVer); err != nil {
 			return fmt.Errorf("failed to update HEAD: %w", err)
 		}
 

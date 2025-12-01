@@ -14,10 +14,27 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       # 持久化数据到本地 tmp 目录，方便查看或清理
-      - ./tmp/minio_data:/data
+      - ./.data/minio_data:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 20s
       retries: 3
+  postgres:
+    image: postgres:16-alpine # 推荐用 Alpine 版，轻量
+    container_name: tensorvault-db
+    restart: always
+    environment:
+      POSTGRES_USER: "tv_user"
+      POSTGRES_PASSWORD: "tv_password"
+      POSTGRES_DB: "tensorvault"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./.data/postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tv_user -d tensorvault"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 # 启动指令: docker-compose up -d

@@ -27,6 +27,7 @@ func (ing *Ingester) IngestFile(ctx context.Context, reader io.Reader) (*core.Fi
 	// 1. 读取全部数据 (MVP 阶段：先读进内存，Phase 3 再做流式优化)
 	// 警告：这不适合 10GB 文件，但适合跑通逻辑
 	//TODO: 实现流式切分和存储
+	//TODO: 实现WAL机制防止中途失败导致数据丢失
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)

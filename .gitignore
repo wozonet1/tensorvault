@@ -28,6 +28,8 @@
 tv
 tmp/
 !cmd/*
+.data_test/
+.data/
 # experiment temporary files
 experiments/**/data/
 experiments/**/.tensorvault/

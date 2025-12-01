@@ -54,7 +54,7 @@ var commitCmd = &cobra.Command{
 		// Phase 2: 准备 Commit 元数据
 		// ---------------------------------------------------------
 		// A. 获取 Parent Commit (HEAD)
-		parentHash, err := TV.Refs.GetHead()
+		parentHash, headVersion, err := TV.Refs.GetHead(ctx)
 		var parents []string
 
 		if err == nil {
@@ -91,7 +91,7 @@ var commitCmd = &cobra.Command{
 		// Phase 4: 更新引用 (Ref Update)
 		// ---------------------------------------------------------
 		// 这就是“移动 HEAD 指针”
-		if err := TV.Refs.UpdateHead(commitObj.ID()); err != nil {
+		if err := TV.Refs.UpdateHead(ctx, commitObj.ID(), headVersion); err != nil {
 			return fmt.Errorf("failed to update HEAD: %w", err)
 		}
 

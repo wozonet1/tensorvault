@@ -31,7 +31,7 @@ func (m mockObject) Size() int64           { return int64(len(m.data)) }
 
 // 检查本地 MinIO 端口是否开放 (9000)
 // 如果没开，跳过测试，避免报错干扰
-func isMinIOAvailable(t *testing.T, endpoint string) bool {
+func isMinIOAvailable(t *testing.T, _ string) bool {
 	// 去掉 http:// 前缀
 	host := "localhost:9000"
 	conn, err := net.DialTimeout("tcp", host, 1*time.Second)
