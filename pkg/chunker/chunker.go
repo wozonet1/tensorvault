@@ -27,9 +27,10 @@ func NewChunker() *Chunker {
 	}
 }
 
-// Cut 将数据切分成一系列的切点 (Cut Points)
-// 返回值是切片结束的 offset 列表
-// 例如: [4096, 8192, 12000...]
+// Cut 将数据切分成一系列的切点。
+// 返回值:
+//   []int: 所有的 **完整块** 的结束 offset。不包含未处理完的尾部。
+
 func (c *Chunker) Cut(data []byte) []int {
 	var cutPoints []int
 	offset := 0
@@ -38,8 +39,7 @@ func (c *Chunker) Cut(data []byte) []int {
 	for offset < n {
 		// 1. 剩余不足最小块，直接收尾
 		if n-offset <= MinSize {
-			cutPoints = append(cutPoints, n)
-			break
+			return cutPoints
 		}
 
 		// 2. 初始化状态
