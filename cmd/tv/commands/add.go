@@ -37,7 +37,10 @@ var addCmd = &cobra.Command{
 		removedCount := 0
 		var totalSize int64 = 0
 
-		wd, _ := os.Getwd()
+		wd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get working directory: %w", err)
+		}
 		matcher, err := ignore.NewMatcher(wd)
 		if err != nil {
 			return err

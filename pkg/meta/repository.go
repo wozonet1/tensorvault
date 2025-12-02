@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"tensorvault/pkg/core"
@@ -65,7 +66,11 @@ func (r *Repository) UpdateRef(ctx context.Context, name string, newHash types.H
 			}
 			// 如果已经存在 (Name 冲突)，则报错
 			if err := tx.Create(&ref).Error; err != nil {
-				// 这里的错误处理可以更细致，比如判断 Duplicate Key
+				//兼容性,处理不同数据库(PG与SQLite)的唯一约束错误
+				if errors.Is(err, gorm.ErrDuplicatedKey) ||
+					strings.Contains(err.Error(), "UNIQUE constraint failed") {
+					return ErrConcurrentUpdate
+				}
 				return fmt.Errorf("failed to create ref: %w", err)
 			}
 			return nil
@@ -106,7 +111,10 @@ func (r *Repository) IndexCommit(ctx context.Context, c *core.Commit) error {
 	for _, p := range c.Parents {
 		parentHashes = append(parentHashes, p.Hash)
 	}
-	parentsJSON, _ := json.Marshal(parentHashes)
+	parentsJSON, err := json.Marshal(parentHashes)
+	if err != nil {
+		return fmt.Errorf("failed to marshal parents: %w", err)
+	}
 
 	// 2. 构造 Model
 	model := CommitModel{
@@ -122,7 +130,7 @@ func (r *Repository) IndexCommit(ctx context.Context, c *core.Commit) error {
 
 	// 3. 写入数据库 (幂等写入)
 	// 如果 Hash 已存在，则什么都不做 (Do Nothing)
-	err := r.db.GetConn().WithContext(ctx).
+	err = r.db.GetConn().WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "hash"}}, // 冲突列
 			DoNothing: true,                            // 忽略

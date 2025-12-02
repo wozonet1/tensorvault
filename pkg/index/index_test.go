@@ -32,7 +32,7 @@ func TestIndex_Persistence_RoundTrip(t *testing.T) {
 
 	entry, exists := idx2.Entries["data/model.bin"]
 	assert.True(t, exists)
-	assert.Equal(t, "hash-123", entry.Hash)
+	assert.Equal(t, "hash-123", entry.Hash.String())
 	assert.Equal(t, int64(1024), entry.Size)
 
 	// 验证时间是否被正确序列化
@@ -42,7 +42,8 @@ func TestIndex_Persistence_RoundTrip(t *testing.T) {
 func TestIndex_Concurrency(t *testing.T) {
 	// 简单的并发安全测试
 	tmpDir := t.TempDir()
-	idx, _ := NewIndex(filepath.Join(tmpDir, "index.json"))
+	idx, err := NewIndex(filepath.Join(tmpDir, "index.json"))
+	require.NoError(t, err)
 
 	// 启动 10 个 goroutine 同时写
 	done := make(chan bool)

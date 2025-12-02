@@ -32,9 +32,6 @@ var encOptions = cbor.EncOptions{
 	BigIntConvert: cbor.BigIntConvertShortest,
 }
 
-// 全局复用的编码模式
-var em, _ = encOptions.EncMode()
-
 // 定义符合 DAG-CBOR 规范的解码选项
 var decOptions = cbor.DecOptions{
 	// --- 安全性配置 (防 DoS 攻击) ---
@@ -57,8 +54,25 @@ var decOptions = cbor.DecOptions{
 	TimeTag: cbor.DecTagIgnored,
 }
 
-// 导出 dm 供包内部使用 (如 link.go)
-var dm, _ = decOptions.DecMode()
+// 全局复用的编码模式
+var em cbor.EncMode
+var dm cbor.DecMode
+
+// 2. 利用 init() 在包加载时初始化
+func init() {
+	var err error
+	// 注意：这里使用 = 赋值，不是 :=
+	dm, err = decOptions.DecMode()
+	if err != nil {
+		// 这是一个“配置错误”，属于不可恢复的错误，直接 Panic 是正确的做法
+		// 这样在程序启动瞬间你就能发现问题，而不是等到运行时出错
+		panic(fmt.Errorf("failed to initialize CBOR decoder: %w", err))
+	}
+	em, err = encOptions.EncMode()
+	if err != nil {
+		panic(fmt.Errorf("failed to initialize CBOR encoder: %w", err))
+	}
+}
 
 // CalculateHash 计算对象的 Hash (CID) 和序列化数据
 func CalculateHash(v any) (types.Hash, []byte, error) {

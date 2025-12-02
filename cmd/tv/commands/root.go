@@ -52,7 +52,11 @@ func init() {
 	// 2. 定义 storage.path 参数，并绑定到 Viper
 	// 这样用户既可以在 yaml 里写，也可以用 --storage-path 覆盖
 	rootCmd.PersistentFlags().String("storage-path", "", "Directory to store objects")
-	viper.BindPFlag("storage.path", rootCmd.PersistentFlags().Lookup("storage-path"))
+	err := viper.BindPFlag("storage.path", rootCmd.PersistentFlags().Lookup("storage-path"))
+	if err != nil {
+		fmt.Println("Failed to bind flag:", err)
+		os.Exit(1)
+	}
 }
 
 // initConfig 读取配置文件和环境变量
@@ -82,12 +86,16 @@ func initConfig() {
 
 	// 设置默认值 (Default)
 	// 默认存放在当前目录的 .tv/objects 下
-	wd, _ := os.Getwd()
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Failed to get working directory:", err)
+		os.Exit(1)
+	}
 	defaultStorePath := filepath.Join(wd, ".tv", "objects")
 	viper.SetDefault("storage.path", defaultStorePath)
 
 	// 尝试读取配置
 	if err := viper.ReadInConfig(); err == nil {
-		// 调试用：fmt.Println("Using config file:", viper.ConfigFileUsed())
+		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
 }

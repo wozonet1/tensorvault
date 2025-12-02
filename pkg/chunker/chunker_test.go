@@ -11,7 +11,8 @@ func TestChunker_Deterministic(t *testing.T) {
 	// 1. 准备数据：100KB 随机数据
 	// 预期 AvgSize=8KB，大概切成 12-13 块
 	data := make([]byte, 100*1024)
-	rand.Read(data)
+	_, err := rand.Read(data)
+	assert.NoError(t, err, "Failed to generate random data")
 
 	c := NewChunker()
 

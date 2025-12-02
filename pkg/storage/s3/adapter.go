@@ -94,7 +94,10 @@ func (s *Adapter) transformKey(hash types.Hash) string {
 func (s *Adapter) Put(ctx context.Context, obj core.Object) error {
 	// 1. 幂等性检查 (去重)
 	// 对于 S3，Head 请求比 Put 请求便宜且快。如果已存在，直接跳过。
-	exists, _ := s.Has(ctx, obj.ID())
+	exists, err := s.Has(ctx, obj.ID())
+	if err != nil {
+		return fmt.Errorf("s3 put existence check failed: %w", err)
+	}
 	if exists {
 		return nil
 	}
@@ -103,7 +106,7 @@ func (s *Adapter) Put(ctx context.Context, obj core.Object) error {
 	data := obj.Bytes()
 
 	// 2. 执行上传
-	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
 		Body:   bytes.NewReader(data),

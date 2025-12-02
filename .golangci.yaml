@@ -1,0 +1,24 @@
+# .golangci.yml
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck # 防止你不处理 error
+    - gosimple # 简化代码建议
+    - govet # 官方静态分析
+    - ineffassign # 检测无效赋值
+    - staticcheck # 高级检查
+    - typecheck
+    - unused # 检测未使用的代码
+    - bodyclose # 【关键】检查 HTTP Body 是否关闭 (S3 sdk 需要)
+    - rowserrcheck # SQL 数据库查询错误检查
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+issues.exclude-dirs:
+  - "vendor"
+  - "experiments"

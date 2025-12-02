@@ -88,7 +88,8 @@ func TestS3Adapter_Integration(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, exists, "Object should exist in S3")
 
-		exists, _ = store.Has(ctx, "ffffffff00000000000000000000000000000000000000000000000000000000")
+		exists, err = store.Has(ctx, "ffffffff00000000000000000000000000000000000000000000000000000000")
+		assert.NoError(t, err)
 		assert.False(t, exists, "Non-existent object should return false")
 	})
 

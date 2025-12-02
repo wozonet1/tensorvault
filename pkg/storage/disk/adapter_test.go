@@ -54,7 +54,8 @@ func TestDiskAdapter(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
-	exists, _ = store.Has(ctx, "ffffffff") // 不存在的
+	exists, err = store.Has(ctx, "ffffffff") // 不存在的
+	assert.NoError(t, err)
 	assert.False(t, exists)
 
 	// 4. 测试 Get
@@ -62,7 +63,8 @@ func TestDiskAdapter(t *testing.T) {
 	assert.NoError(t, err)
 	defer reader.Close()
 
-	content, _ := io.ReadAll(reader)
+	content, err := io.ReadAll(reader)
+	assert.NoError(t, err)
 	assert.Equal(t, []byte("hello world"), content)
 }
 
@@ -80,9 +82,9 @@ func TestDiskAdapter_ExpandHash(t *testing.T) {
 	// Hash C: 2222cccc...
 	objC := mockObject{id: "2222cccc00000000000000000000000000000000000000000000000000000000", data: []byte("C")}
 
-	_ = store.Put(ctx, objA)
-	_ = store.Put(ctx, objB)
-	_ = store.Put(ctx, objC)
+	require.NoError(t, store.Put(ctx, objA))
+	require.NoError(t, store.Put(ctx, objB))
+	require.NoError(t, store.Put(ctx, objC))
 
 	tests := []struct {
 		name      string

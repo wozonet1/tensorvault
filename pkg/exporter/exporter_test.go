@@ -72,20 +72,23 @@ func TestRestoreAndPrint_Integration(t *testing.T) {
 	// Chunk
 	chunkData := []byte("hello restore")
 	chunk := core.NewChunk(chunkData)
-	_ = store.Put(ctx, chunk)
+	require.NoError(t, store.Put(ctx, chunk))
 
 	// FileNode
-	fileNode, _ := core.NewFileNode(int64(len(chunkData)), []core.ChunkLink{core.NewChunkLink(chunk)})
-	_ = store.Put(ctx, fileNode)
+	fileNode, err := core.NewFileNode(int64(len(chunkData)), []core.ChunkLink{core.NewChunkLink(chunk)})
+	require.NoError(t, err)
+	require.NoError(t, store.Put(ctx, fileNode))
 
 	// Tree (Root -> "test.txt")
 	treeEntry := core.NewFileEntry("test.txt", fileNode.ID(), fileNode.TotalSize)
-	tree, _ := core.NewTree([]core.TreeEntry{treeEntry})
-	_ = store.Put(ctx, tree)
+	tree, err := core.NewTree([]core.TreeEntry{treeEntry})
+	require.NoError(t, err)
+	require.NoError(t, store.Put(ctx, tree))
 
 	// Commit
-	commit, _ := core.NewCommit(tree.ID(), nil, "Tester", "Init")
-	_ = store.Put(ctx, commit)
+	commit, err := core.NewCommit(tree.ID(), nil, "Tester", "Init")
+	require.NoError(t, err)
+	require.NoError(t, store.Put(ctx, commit))
 
 	// ---------------------------------------------------
 	// Test A: RestoreTree (Checkout Logic)
@@ -102,7 +105,8 @@ func TestRestoreAndPrint_Integration(t *testing.T) {
 	assert.True(t, callbackCalled, "Callback should be triggered")
 
 	// 验证文件内容
-	restoredContent, _ := os.ReadFile(filepath.Join(restoreDir, "test.txt"))
+	restoredContent, err := os.ReadFile(filepath.Join(restoreDir, "test.txt"))
+	require.NoError(t, err)
 	assert.Equal(t, chunkData, restoredContent)
 
 	// ---------------------------------------------------

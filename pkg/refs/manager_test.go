@@ -102,7 +102,8 @@ func TestRefFlow_OptimisticLocking(t *testing.T) {
 	assert.ErrorIs(t, err, ErrStaleHead, "使用过期的版本号更新应该被拒绝")
 
 	// 5. 确保数据没有被覆盖
-	currHash, currVer, _ := mgr.GetHead(ctx)
+	currHash, currVer, err := mgr.GetHead(ctx)
+	require.NoError(t, err)
 	assert.Equal(t, hashB, currHash, "HEAD 应该保持为用户 B 的值")
 	assert.Equal(t, int64(2), currVer)
 }

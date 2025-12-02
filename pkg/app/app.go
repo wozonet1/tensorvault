@@ -37,7 +37,10 @@ func NewApp() (*App, error) {
 	// 1. 确定本地仓库路径 (.tv)
 	// 逻辑：无论数据存哪，本地必须有 .tv 用来存 index 和 HEAD
 	// 默认在当前目录下，或者通过配置指定
-	workDir, _ := os.Getwd()
+	workDir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get working directory: %w", err)
+	}
 	localRepoPath := filepath.Join(workDir, ".tv")
 
 	// 检查本地仓库是否初始化

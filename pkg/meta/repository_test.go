@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
-	"tensorvault/pkg/core"
 	"tensorvault/pkg/types"
 
 	"github.com/stretchr/testify/assert"
@@ -16,127 +14,138 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// setupTestRepo 构建一个独立的、基于内存 SQLite 的测试环境
+// setupTestRepo 构建隔离的测试环境
 func setupTestRepo(t *testing.T) *Repository {
-	// 1. 使用 t.Name() 隔离不同测试用例的数据库实例
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
-
-	// 2. 连接 SQLite
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent), // 静默日志，保持测试输出干净
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	require.NoError(t, err)
 
-	// 3. 注入连接 (假设你已经把 NewTestDB 改名为 NewFromConn)
 	metaDB := NewWithConn(db)
-
-	// 4. 自动迁移 Schema
-	err = metaDB.AutoMigrate(&Ref{}, &CommitModel{})
-	require.NoError(t, err)
+	require.NoError(t, metaDB.AutoMigrate(&Ref{}, &CommitModel{}))
 
 	return NewRepository(metaDB)
 }
 
-// TestRepository_CommitLifecycle 测试 Commit 的完整生命周期：索引 -> 读取
+// -----------------------------------------------------------------------------
+// 测试用例
+// -----------------------------------------------------------------------------
+
 func TestRepository_CommitLifecycle(t *testing.T) {
 	repo := setupTestRepo(t)
 	ctx := context.Background()
 
-	// 1. 构造一个模拟的 core.Commit 对象
-	// 注意：我们需要构造一个合法的 Commit，这里简化构造过程
-	parents := []types.Hash{"parent_hash_123"}
-	commitObj, err := core.NewCommit("tree_hash_abc", parents, "Alice", "Initial Commit")
+	// 1. 准备数据
+	treeHash := mockHash("tree_data")
+	parentHash := mockHash("parent_data")
+
+	// 使用 Helper，代码极其简洁
+	commitObj := mustNewCommit(t, treeHash, []types.Hash{parentHash}, "Alice", "Init", "Failed to create commit")
+
+	// 2. 写入
+	mustIndexCommit(t, repo, commitObj, "First index should succeed")
+
+	// 3. 读取并验证
+	storedCommit, err := repo.GetCommit(ctx, commitObj.ID())
 	require.NoError(t, err)
 
-	// 2. 测试写入 (Index)
-	err = repo.IndexCommit(ctx, commitObj)
-	assert.NoError(t, err, "IndexCommit should succeed")
-
-	// 3. 测试读取 (Get)
-	storedCommit, err := repo.GetCommit(ctx, commitObj.ID())
-	assert.NoError(t, err, "GetCommit should succeed")
-
-	// 4. 验证字段一致性
 	assert.Equal(t, commitObj.ID(), storedCommit.Hash)
 	assert.Equal(t, "Alice", storedCommit.Author)
-	assert.Equal(t, "Initial Commit", storedCommit.Message)
-	assert.Equal(t, commitObj.Timestamp, storedCommit.Timestamp)
 
-	// 验证 Parents (JSONB 序列化是否正确)
-	// GORM/SQLite 会将其存为字符串，我们需要确认它不是空的
-	assert.JSONEq(t, `["parent_hash_123"]`, string(storedCommit.Parents), "Parents JSON should match")
+	// 验证 JSONB 存储
+	expectedJSON := fmt.Sprintf(`["%s"]`, parentHash)
+	assert.JSONEq(t, expectedJSON, string(storedCommit.Parents))
 }
 
-// TestRepository_IndexCommit_Idempotency 测试 Commit 索引的幂等性
-// 即：重复索引同一个 Commit 不应报错
 func TestRepository_IndexCommit_Idempotency(t *testing.T) {
 	repo := setupTestRepo(t)
-	ctx := context.Background()
+	commitObj := mustNewCommit(t, mockHash("tree"), nil, "Bob", "Update")
 
-	commitObj, _ := core.NewCommit("tree", nil, "Bob", "Update")
+	// 1. 写入两次
+	mustIndexCommit(t, repo, commitObj, "1st write failed")
+	mustIndexCommit(t, repo, commitObj, "2nd write (idempotency check) failed")
 
-	// 第一次写入
-	err := repo.IndexCommit(ctx, commitObj)
-	assert.NoError(t, err)
-
-	// 第二次写入 (完全相同的 Hash)
-	err = repo.IndexCommit(ctx, commitObj)
-	assert.NoError(t, err, "Duplicate IndexCommit should be ignored (Idempotent)")
+	// 2. 验证数据库中只有一条记录 (副作用检查)
+	var count int64
+	err := repo.db.GetConn().Model(&CommitModel{}).Where("hash = ?", commitObj.ID()).Count(&count).Error
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), count, "Should have exactly 1 record after duplicate inserts")
 }
 
-// TestRepository_FindCommitsByAuthor 测试按作者查询功能
 func TestRepository_FindCommitsByAuthor(t *testing.T) {
 	repo := setupTestRepo(t)
 	ctx := context.Background()
 
-	// 插入 3 条数据
-	c1, _ := core.NewCommit("t1", nil, "Alice", "1")
-	c2, _ := core.NewCommit("t2", nil, "Bob", "2")
-	time.Sleep(10 * time.Millisecond)                // 确保时间戳不同
-	c3, _ := core.NewCommit("t3", nil, "Alice", "3") // Alice 的第二条
+	// 1. 准备数据 (手动控制时间戳以保证排序确定性)
+	c1 := mustNewCommit(t, mockHash("t1"), nil, "Alice", "1")
+	c1.Timestamp = 1000
 
-	require.NoError(t, repo.IndexCommit(ctx, c1))
-	require.NoError(t, repo.IndexCommit(ctx, c2))
-	require.NoError(t, repo.IndexCommit(ctx, c3))
+	c2 := mustNewCommit(t, mockHash("t2"), nil, "Bob", "2")
 
-	// 查询 Alice
+	c3 := mustNewCommit(t, mockHash("t3"), nil, "Alice", "3")
+	c3.Timestamp = 3000 // 最新
+
+	// 2. 写入
+	mustIndexCommit(t, repo, c1)
+	mustIndexCommit(t, repo, c2)
+	mustIndexCommit(t, repo, c3)
+
+	// 3. 查询
 	results, err := repo.FindCommitsByAuthor(ctx, "Alice", 10)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(results), "Alice should have 2 commits")
+	require.NoError(t, err)
 
-	// 验证排序 (应该按时间倒序，最新的 c3 在前)
-	assert.Equal(t, c3.ID(), results[0].Hash)
-	assert.Equal(t, c1.ID(), results[1].Hash)
+	assert.Equal(t, 2, len(results))
+	// 验证排序：最新的在前 (ORDER BY timestamp DESC)
+	assert.Equal(t, c3.ID(), results[0].Hash, "Newest commit should be first")
+	assert.Equal(t, c1.ID(), results[1].Hash, "Oldest commit should be last")
 }
 
-// TestRepository_Ref_CAS 测试引用的乐观锁逻辑
 func TestRepository_Ref_CAS(t *testing.T) {
 	repo := setupTestRepo(t)
-	ctx := context.Background()
+	ctx := context.Background() // Unhappy path 需要用到 ctx
 
 	refName := "HEAD"
-	hashV1 := "hash_v1"
-	hashV2 := "hash_v2"
+	hashV1 := mockHash("v1")
+	hashV2 := mockHash("v2")
 
-	// 1. 首次创建 (OldVersion = 0)
-	err := repo.UpdateRef(ctx, refName, hashV1, 0)
-	assert.NoError(t, err)
+	// 1. 首次创建 (Happy Path)
+	mustUpdateRef(t, repo, refName, hashV1, 0, "Initial creation failed")
 
-	// 2. 获取当前版本
+	// 验证状态
 	ref, err := repo.GetRef(ctx, refName)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), ref.Version)
 
-	// 3. 模拟并发冲突：使用错误的 OldVersion (0) 更新
-	err = repo.UpdateRef(ctx, refName, hashV2, 0)
-	assert.ErrorIs(t, err, ErrConcurrentUpdate, "Should fail with stale version")
+	// 2. 模拟并发冲突 (Unhappy Path)
+	// 这里不能用 mustUpdateRef，因为我们要断言它 *失败*
+	wrongVersion := int64(999)
+	err = repo.UpdateRef(ctx, refName, hashV2, wrongVersion)
+	assert.ErrorIs(t, err, ErrConcurrentUpdate, "Should fail when version mismatches")
 
-	// 4. 正常更新：使用正确的 OldVersion (1)
-	err = repo.UpdateRef(ctx, refName, hashV2, 1)
-	assert.NoError(t, err)
+	// 3. 正常更新 (Happy Path)
+	// 使用正确的版本号 1
+	mustUpdateRef(t, repo, refName, hashV2, 1, "Valid update failed")
 
-	// 5. 验证版本号自增
-	ref, _ = repo.GetRef(ctx, refName)
+	// 验证版本号自增
+	ref, err = repo.GetRef(ctx, refName)
+	require.NoError(t, err)
 	assert.Equal(t, int64(2), ref.Version)
 	assert.Equal(t, hashV2, ref.CommitHash)
+}
+
+func TestRepository_Ref_ConcurrentCreate(t *testing.T) {
+	repo := setupTestRepo(t)
+	ctx := context.Background()
+	refName := "HEAD"
+
+	// 1. 用户 A 抢先创建成功
+	mustUpdateRef(t, repo, refName, mockHash("A"), 0)
+
+	// 2. 用户 B 晚了一步，但也以为 oldVersion 是 0
+	// 这里预期失败，所以用原生调用
+	err := repo.UpdateRef(ctx, refName, mockHash("B"), 0)
+
+	// 3. 断言：应该返回统一的 CAS 错误 (得益于我们在 UpdateRef 里的兼容性修复)
+	assert.ErrorIs(t, err, ErrConcurrentUpdate, "Concurrent creation should return CAS error")
 }

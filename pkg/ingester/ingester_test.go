@@ -38,11 +38,13 @@ func TestIngestFlow(t *testing.T) {
 
 	// 5. (可选) 验证数据是否落地
 	// 检查 store 里有没有 fileNode.ID()
-	exists, _ := store.Has(ctx, fileNode.ID())
+	exists, err := store.Has(ctx, fileNode.ID())
+	require.NoError(t, err)
 	assert.True(t, exists, "FileNode 应该被持久化")
 
 	// 检查第一个 Chunk 是否存在
 	firstChunkHash := fileNode.Chunks[0].Cid.Hash
-	exists, _ = store.Has(ctx, firstChunkHash)
+	exists, err = store.Has(ctx, firstChunkHash)
+	require.NoError(t, err)
 	assert.True(t, exists, "Chunk 应该被持久化")
 }
