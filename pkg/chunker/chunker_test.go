@@ -75,7 +75,8 @@ func TestChunker_Integration_Property(t *testing.T) {
 
 	// Case 2: 极小数据
 	data2 := make([]byte, MinSize-1)
-	rand.Read(data2)
+	_, err = rand.Read(data2)
+	require.NoError(t, err)
 	cuts2 := c.Cut(data2)
 
 	// 必然为空

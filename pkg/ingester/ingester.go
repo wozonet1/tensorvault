@@ -79,7 +79,7 @@ func (ing *Ingester) IngestFile(ctx context.Context, reader io.Reader) (*core.Fi
 
 	// 守护协程：等待生产者结束 -> 关闭结果通道(Layer B)
 	go func() {
-		_ = producerG.Wait() // 错误会由 collector 最终捕获或传播
+		_ = producerG.Wait() //nolint:errcheck // 错误会由 collector 最终捕获或传播
 		close(resultsCh)
 	}()
 

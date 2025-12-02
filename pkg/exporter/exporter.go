@@ -12,6 +12,12 @@ import (
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/storage"
 	"tensorvault/pkg/types"
+
+	"golang.org/x/sync/errgroup"
+)
+
+const (
+	RestoreWorkerCount = 16 // 并发恢复的 Worker 数量
 )
 
 type Exporter struct {
@@ -22,10 +28,11 @@ func NewExporter(store storage.Store) *Exporter {
 	return &Exporter{store: store}
 }
 
-// ExportFile 根据 FileNode 的 Hash，将还原的文件写入 writer
+// ExportFile 智能导出文件
+// 如果 writer 支持 io.WriterAt (如 *os.File)，则使用并发下载 (Parallel Restore)
+// 否则 (如 os.Stdout)，回退到串行流式下载 (Serial Restore)
 func (e *Exporter) ExportFile(ctx context.Context, hash types.Hash, writer io.Writer) error {
-	// 1. 获取 FileNode 元数据
-	// 注意：storage.Get 返回的是 io.ReadCloser，我们需要读出来反序列化
+	// 1. 获取并解析 FileNode
 	nodeReader, err := e.store.Get(ctx, hash)
 	if err != nil {
 		return fmt.Errorf("failed to get filenode meta: %w", err)
@@ -37,45 +44,125 @@ func (e *Exporter) ExportFile(ctx context.Context, hash types.Hash, writer io.Wr
 		return fmt.Errorf("failed to read filenode bytes: %w", err)
 	}
 
-	// 2. 反序列化 FileNode
 	var fileNode core.FileNode
 	if err := core.DecodeObject(nodeBytes, &fileNode); err != nil {
 		return fmt.Errorf("failed to decode filenode: %w", err)
 	}
 
-	// 3. 类型防御 (Defensive Check)
 	if fileNode.TypeVal != core.TypeFileNode {
 		return fmt.Errorf("object is not a filenode, got: %s", fileNode.TypeVal)
 	}
 
-	// 4. 遍历所有 Chunk，按顺序写入 Writer (Reassembly)
+	// 2. 策略分发
+	// 检查 writer 是否支持“随机写入” (WriteAt)
+	if wAt, ok := writer.(io.WriterAt); ok {
+		// 🚀 路径 A: 并发恢复 (适用于 Checkout 到本地文件)
+		return e.exportFileConcurrent(ctx, &fileNode, wAt)
+	}
+
+	// 🐌 路径 B: 串行恢复 (适用于 Cat 到标准输出)
+	return e.exportFileSerial(ctx, &fileNode, writer)
+}
+
+// exportFileSerial 传统的串行流式实现
+func (e *Exporter) exportFileSerial(ctx context.Context, fileNode *core.FileNode, writer io.Writer) error {
 	for i, chunkLink := range fileNode.Chunks {
-		// 【技巧】使用匿名函数构建一个 Scope
 		err := func() error {
-			// 获取 Chunk 数据
-			// (注意这里用了重构后的 Cid 命名)
-			chunkReader, err := e.store.Get(ctx, chunkLink.Cid.Hash)
+			rc, err := e.store.Get(ctx, chunkLink.Cid.Hash)
 			if err != nil {
 				return fmt.Errorf("failed to get chunk %d: %w", i, err)
 			}
-			// ✅ 安全：函数返回时立即关闭，不会堆积句柄
-			defer chunkReader.Close()
+			defer rc.Close()
 
-			// 流式拷贝
-			if _, err := io.Copy(writer, chunkReader); err != nil {
-				return fmt.Errorf("failed to write chunk %d data: %w", i, err)
+			if _, err := io.Copy(writer, rc); err != nil {
+				return fmt.Errorf("failed to write chunk %d: %w", i, err)
 			}
 			return nil
 		}()
-
-		// 处理匿名函数返回的错误
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
+
+// restoreJob 并发任务结构
+type restoreJob struct {
+	hash   types.Hash
+	offset int64 // 写入文件的绝对偏移量
+	size   int   // 预期大小 (用于校验)
+}
+
+// exportFileConcurrent 并发乱序下载 + WriteAt
+func (e *Exporter) exportFileConcurrent(ctx context.Context, fileNode *core.FileNode, writer io.WriterAt) error {
+	g, ctx := errgroup.WithContext(ctx)
+	jobsCh := make(chan restoreJob, RestoreWorkerCount*2)
+
+	// ---------------------------------------------------------
+	// Stage 1: Generator (计算偏移量并分发)
+	// ---------------------------------------------------------
+	g.Go(func() error {
+		defer close(jobsCh)
+		var currentOffset int64 = 0
+
+		// 预先计算每个 Chunk 在文件中的确切位置
+		for _, chunk := range fileNode.Chunks {
+			job := restoreJob{
+				hash:   chunk.Cid.Hash,
+				offset: currentOffset,
+				size:   chunk.Size,
+			}
+
+			select {
+			case jobsCh <- job:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+
+			// 累加偏移量
+			currentOffset += int64(chunk.Size)
+		}
+		return nil
+	})
+
+	// ---------------------------------------------------------
+	// Stage 2: Workers (下载并写入)
+	// ---------------------------------------------------------
+	for range RestoreWorkerCount {
+		g.Go(func() error {
+			for job := range jobsCh {
+				// 1. 下载 Chunk
+				rc, err := e.store.Get(ctx, job.hash)
+				if err != nil {
+					return fmt.Errorf("download chunk %s failed: %w", job.hash, err)
+				}
+
+				// 读取全部内容到内存
+				// 注意：Chunk 通常很小 (8KB-64KB)，全部读入内存是安全的
+				data, err := io.ReadAll(rc)
+				rc.Close() // 尽早关闭连接
+				if err != nil {
+					return err
+				}
+
+				// 简单校验
+				if len(data) != job.size {
+					return fmt.Errorf("integrity error: chunk %s size mismatch (want %d, got %d)", job.hash, job.size, len(data))
+				}
+
+				// 2. 随机写入 (WriteAt)
+				// 这是并发恢复的核心：只要知道 offset，谁先下载完谁就先写，不需要排队
+				if _, err := writer.WriteAt(data, job.offset); err != nil {
+					return fmt.Errorf("writeAt failed at offset %d: %w", job.offset, err)
+				}
+			}
+			return nil
+		})
+	}
+
+	return g.Wait()
+}
+
 func (e *Exporter) PrintObject(ctx context.Context, hash types.Hash, writer io.Writer) error {
 	// 1. 读取原始字节
 	reader, err := e.store.Get(ctx, hash)
