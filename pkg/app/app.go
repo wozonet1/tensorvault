@@ -12,6 +12,7 @@ import (
 	"tensorvault/pkg/meta"
 	"tensorvault/pkg/refs"
 	"tensorvault/pkg/storage"
+	"tensorvault/pkg/storage/cache"
 	"tensorvault/pkg/storage/disk"
 	"tensorvault/pkg/storage/s3"
 
@@ -88,29 +89,28 @@ func NewApp() (*App, error) {
 	}, nil
 }
 
-// initStore 根据配置决定实例化哪种存储适配器
+// initStore 根据配置组装存储层 (Base Store + Cache Layer)
 func initStore(ctx context.Context, localRepoPath string) (storage.Store, error) {
-	storageType := viper.GetString("storage.type")
+	var baseStore storage.Store
+	var err error
 
-	// 默认为 disk
+	// 1. 初始化底层物理存储 (Base Store)
+	storageType := viper.GetString("storage.type")
 	if storageType == "" {
 		storageType = "disk"
 	}
 
-	fmt.Printf("🔌 Initializing Storage: %s\n", strings.ToUpper(storageType))
+	fmt.Printf("🔌 Storage Backend: %s\n", strings.ToUpper(storageType))
 
 	switch storageType {
 	case "disk":
-		// 磁盘模式：数据存在 .tv/objects
 		storePath := viper.GetString("storage.path")
 		if storePath == "" {
-			// 默认路径
 			storePath = filepath.Join(localRepoPath, "objects")
 		}
-		return disk.NewAdapter(storePath)
+		baseStore, err = disk.NewAdapter(storePath)
 
 	case "s3":
-		// S3 模式：数据存在云端
 		cfg := s3.Config{
 			Endpoint:        viper.GetString("storage.s3.endpoint"),
 			Region:          viper.GetString("storage.s3.region"),
@@ -118,15 +118,56 @@ func initStore(ctx context.Context, localRepoPath string) (storage.Store, error)
 			AccessKeyID:     viper.GetString("storage.s3.access_key_id"),
 			SecretAccessKey: viper.GetString("storage.s3.secret_access_key"),
 		}
-
-		// 简单的配置校验
 		if cfg.Bucket == "" {
 			return nil, fmt.Errorf("storage.s3.bucket is required")
 		}
-
-		return s3.NewAdapter(ctx, cfg)
+		baseStore, err = s3.NewAdapter(ctx, cfg)
 
 	default:
 		return nil, fmt.Errorf("unsupported storage type: %s", storageType)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. 初始化缓存层 (Cache Layer Decorator)
+	// 检查配置是否启用了缓存
+	// TODO:配置使用Config结构体读取更清晰，但为了简单起见这里直接用 viper
+	if viper.GetBool("storage.cache.enabled") {
+		redisURL := viper.GetString("storage.cache.redis_url")
+		if redisURL == "" {
+			redisURL = "redis://localhost:6379/0"
+		}
+
+		ttl := viper.GetDuration("storage.cache.ttl")
+		if ttl == 0 {
+			ttl = 24 * time.Hour
+		}
+
+		fmt.Printf("🚀 Cache Layer: Enabled (Redis @ %s)\n", redactPassword(redisURL))
+
+		// Change: 使用 Config 结构体初始化
+		cacheCfg := cache.Config{
+			RedisURL: redisURL,
+			TTL:      ttl,
+		}
+		// 【关键】用 CachedStore 包裹 baseStore
+		// 此时返回的 store 对象，其 Has/Put 方法都会先经过 Redis
+		baseStore, err = cache.NewCachedStore(baseStore, cacheCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to init redis cache: %w", err)
+		}
+	} else {
+		fmt.Println("🐌 Cache Layer: Disabled")
+	}
+
+	return baseStore, nil
+}
+
+// 辅助函数：隐藏 Redis URL 中的密码，避免日志泄露
+func redactPassword(url string) string {
+	// 简单实现，生产环境可以用 url.Parse 处理
+	// redis://user:password@host... -> redis://user:****@host...
+	return url
 }
