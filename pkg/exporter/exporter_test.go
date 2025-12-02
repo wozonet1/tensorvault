@@ -14,6 +14,7 @@ import (
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/ingester"
 	"tensorvault/pkg/storage/disk"
+	"tensorvault/pkg/types"
 )
 
 func TestIngestAndExport_RoundTrip(t *testing.T) {
@@ -92,7 +93,7 @@ func TestRestoreAndPrint_Integration(t *testing.T) {
 	restoreDir := t.TempDir()
 	callbackCalled := false
 
-	err = exp.RestoreTree(ctx, tree.ID(), restoreDir, func(path string, hash string, size int64) {
+	err = exp.RestoreTree(ctx, tree.ID(), restoreDir, func(path string, hash types.Hash, size int64) {
 		callbackCalled = true
 		assert.Equal(t, fileNode.ID(), hash)
 		assert.Contains(t, path, "test.txt")

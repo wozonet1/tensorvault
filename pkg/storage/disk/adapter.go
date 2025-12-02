@@ -10,6 +10,7 @@ import (
 
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/storage"
+	"tensorvault/pkg/types"
 )
 
 // Adapter 实现了 storage.Store 接口
@@ -29,11 +30,12 @@ func NewAdapter(root string) (*Adapter, error) {
 // layout 返回哈希对应的物理路径
 // 策略：使用前 2 个字符作为子目录 (Sharding)
 // Example: hash "aabbcc..." -> root/aa/bbcc...
-func (s *Adapter) layout(hash string) string {
-	if len(hash) < 2 {
-		return filepath.Join(s.rootPath, hash)
+func (s *Adapter) layout(hash types.Hash) string {
+	hashStr := string(hash)
+	if len(hashStr) < 2 {
+		return filepath.Join(s.rootPath, hashStr)
 	}
-	return filepath.Join(s.rootPath, hash[:2], hash[2:])
+	return filepath.Join(s.rootPath, hashStr[:2], hashStr[2:])
 }
 
 func (s *Adapter) Put(ctx context.Context, obj core.Object) error {
@@ -77,7 +79,7 @@ func (s *Adapter) Put(ctx context.Context, obj core.Object) error {
 	return nil
 }
 
-func (s *Adapter) Get(ctx context.Context, hash string) (io.ReadCloser, error) {
+func (s *Adapter) Get(ctx context.Context, hash types.Hash) (io.ReadCloser, error) {
 	targetPath := s.layout(hash)
 
 	f, err := os.Open(targetPath)
@@ -90,7 +92,7 @@ func (s *Adapter) Get(ctx context.Context, hash string) (io.ReadCloser, error) {
 	return f, nil
 }
 
-func (s *Adapter) Has(ctx context.Context, hash string) (bool, error) {
+func (s *Adapter) Has(ctx context.Context, hash types.Hash) (bool, error) {
 	targetPath := s.layout(hash)
 	_, err := os.Stat(targetPath)
 	if err == nil {
@@ -102,7 +104,8 @@ func (s *Adapter) Has(ctx context.Context, hash string) (bool, error) {
 	return false, err
 }
 
-func (s *Adapter) ExpandHash(ctx context.Context, short string) (string, error) {
+func (s *Adapter) ExpandHash(ctx context.Context, short types.HashPrefix) (types.Hash, error) {
+	shortStr := string(short)
 	// 1. 长度检查：为了性能和歧义控制，至少需要 4 位
 	if len(short) < 4 {
 		return "", fmt.Errorf("hash prefix too short (min 4 chars)")
@@ -110,7 +113,7 @@ func (s *Adapter) ExpandHash(ctx context.Context, short string) (string, error) 
 
 	// 2. 确定分片目录
 	// hash: "a8fd..." -> dir: "root/objects/a8"
-	shardDir := filepath.Join(s.rootPath, short[:2])
+	shardDir := filepath.Join(s.rootPath, shortStr[:2])
 
 	// 如果连分片目录都不存在，肯定没有
 	entries, err := os.ReadDir(shardDir)
@@ -123,7 +126,7 @@ func (s *Adapter) ExpandHash(ctx context.Context, short string) (string, error) 
 
 	// 3. 寻找匹配项
 	// 目标文件名后缀：short[2:]
-	suffixPrefix := short[2:]
+	suffixPrefix := shortStr[2:]
 	var matches []string
 
 	for _, entry := range entries {
@@ -133,7 +136,7 @@ func (s *Adapter) ExpandHash(ctx context.Context, short string) (string, error) 
 		name := entry.Name()
 		if strings.HasPrefix(name, suffixPrefix) {
 			// 拼凑回完整的 hash: shard(2) + filename(62)
-			fullHash := short[:2] + name
+			fullHash := shortStr[:2] + name
 			matches = append(matches, fullHash)
 		}
 	}
@@ -146,5 +149,5 @@ func (s *Adapter) ExpandHash(ctx context.Context, short string) (string, error) 
 		return "", fmt.Errorf("%w: %v", storage.ErrAmbiguousHash, matches)
 	}
 
-	return matches[0], nil
+	return types.Hash(matches[0]), nil
 }

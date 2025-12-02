@@ -10,12 +10,13 @@ import (
 
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/storage"
+	"tensorvault/pkg/types"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 // Adapter 实现了 storage.Store 接口
@@ -81,11 +82,12 @@ func NewAdapter(ctx context.Context, cfg Config) (*Adapter, error) {
 
 // transformKey 将 Hash 转换为 S3 Key (Sharding)
 // Logic: "aabbcc..." -> "aa/bbcc..."
-func (s *Adapter) transformKey(hash string) string {
-	if len(hash) < 2 {
-		return hash
+func (s *Adapter) transformKey(hash types.Hash) string {
+	hashStr := string(hash)
+	if len(hashStr) < 2 {
+		return hashStr
 	}
-	return hash[:2] + "/" + hash[2:]
+	return hashStr[:2] + "/" + hashStr[2:]
 }
 
 // Put 上传对象
@@ -116,7 +118,7 @@ func (s *Adapter) Put(ctx context.Context, obj core.Object) error {
 }
 
 // Get 下载对象
-func (s *Adapter) Get(ctx context.Context, hash string) (io.ReadCloser, error) {
+func (s *Adapter) Get(ctx context.Context, hash types.Hash) (io.ReadCloser, error) {
 	key := s.transformKey(hash)
 
 	resp, err := s.client.GetObject(ctx, &s3.GetObjectInput{
@@ -126,7 +128,7 @@ func (s *Adapter) Get(ctx context.Context, hash string) (io.ReadCloser, error) {
 
 	if err != nil {
 		// 将 AWS 的 NoSuchKey 错误映射为我们自己的 ErrNotFound
-		var noKey *types.NoSuchKey
+		var noKey *s3types.NoSuchKey
 		if errors.As(err, &noKey) {
 			return nil, storage.ErrNotFound
 		}
@@ -137,7 +139,7 @@ func (s *Adapter) Get(ctx context.Context, hash string) (io.ReadCloser, error) {
 }
 
 // Has 检查对象是否存在
-func (s *Adapter) Has(ctx context.Context, hash string) (bool, error) {
+func (s *Adapter) Has(ctx context.Context, hash types.Hash) (bool, error) {
 	key := s.transformKey(hash)
 
 	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
@@ -149,8 +151,8 @@ func (s *Adapter) Has(ctx context.Context, hash string) (bool, error) {
 		return true, nil
 	}
 
-	var notFound *types.NotFound
-	var noKey *types.NoSuchKey
+	var notFound *s3types.NotFound
+	var noKey *s3types.NoSuchKey
 	if errors.As(err, &notFound) || errors.As(err, &noKey) {
 		return false, nil
 	}
@@ -163,13 +165,14 @@ func (s *Adapter) Has(ctx context.Context, hash string) (bool, error) {
 }
 
 // ExpandHash 利用 Prefix 查询扩展短哈希
-func (s *Adapter) ExpandHash(ctx context.Context, shortHash string) (string, error) {
-	if len(shortHash) < 4 {
+func (s *Adapter) ExpandHash(ctx context.Context, shortHash types.HashPrefix) (types.Hash, error) {
+	inputStr := string(shortHash)
+	if len(inputStr) < 4 {
 		return "", fmt.Errorf("hash prefix too short")
 	}
 
 	// 构造前缀: "a8fd" -> "a8/fd"
-	prefix := shortHash[:2] + "/" + shortHash[2:]
+	prefix := inputStr[:2] + "/" + inputStr[2:]
 
 	// 这里的 MaxKeys=2 是关键：我们只需要知道是否有 0 个、1 个(唯一) 或 >1 个(歧义)
 	resp, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
@@ -194,5 +197,5 @@ func (s *Adapter) ExpandHash(ctx context.Context, shortHash string) (string, err
 	key := *resp.Contents[0].Key
 	hash := strings.Replace(key, "/", "", 1)
 
-	return hash, nil
+	return types.Hash(hash), nil
 }

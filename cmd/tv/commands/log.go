@@ -9,11 +9,12 @@ import (
 
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/refs"
+	"tensorvault/pkg/types"
 
 	"github.com/spf13/cobra"
 )
 
-// TODO: read
+// TODO: 利用 refs 与meta包实现 log 命令
 var logCmd = &cobra.Command{
 	Use:   "log [commit-hash]",
 	Short: "Show commit logs",
@@ -25,12 +26,13 @@ var logCmd = &cobra.Command{
 		}
 
 		ctx := context.Background()
-		var currentHash string
+		var currentHash types.Hash
 
 		// 1. 确定起始点 (Start Point)
 		if len(args) > 0 {
 			// 如果用户指定了 Hash (支持短哈希)
-			input := args[0]
+
+			input := types.HashPrefix(args[0])
 			fullHash, err := TV.Store.ExpandHash(ctx, input)
 			if err != nil {
 				return fmt.Errorf("invalid commit argument '%s': %w", input, err)
@@ -88,7 +90,7 @@ var logCmd = &cobra.Command{
 }
 
 // printCommitLog 格式化输出
-func printCommitLog(hash string, c *core.Commit) {
+func printCommitLog(hash types.Hash, c *core.Commit) {
 	// 颜色代码 (ANSI Escape Codes) - 可选，为了好看
 	const (
 		colorYellow = "\033[33m"

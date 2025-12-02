@@ -8,6 +8,7 @@ import (
 
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/exporter"
+	"tensorvault/pkg/types"
 
 	"github.com/spf13/cobra"
 )
@@ -26,7 +27,7 @@ var checkoutCmd = &cobra.Command{
 		start := time.Now()
 
 		// 1. 解析目标 Commit Hash
-		targetInput := args[0]
+		targetInput := types.HashPrefix(args[0])
 		commitHash, err := TV.Store.ExpandHash(ctx, targetInput)
 		if err != nil {
 			return fmt.Errorf("invalid commit '%s': %w", targetInput, err)
@@ -60,7 +61,7 @@ var checkoutCmd = &cobra.Command{
 
 		// 定义回调：每还原一个文件，就往 Index 里加一条
 		// 这样 Checkout 完成后，Index 的状态就和磁盘完全一致了
-		restoreCallback := func(path string, hash string, size int64) {
+		restoreCallback := func(path string, hash types.Hash, size int64) {
 			// 路径归一化：RestoreTree 传回来的是绝对路径或基于 CWD 的路径
 			// 我们需要确保它符合 Index 的标准 (CleanPath)
 			// 注意：filepath.Join 可能会产生绝对路径吗？取决于 targetDir。

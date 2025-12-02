@@ -8,15 +8,16 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"tensorvault/pkg/types"
 	"time"
 )
 
 // Entry 代表暂存区中的一条记录
 type Entry struct {
-	Path       string    `json:"path"`        // 相对路径 (如 "data/model.bin")
-	Hash       string    `json:"hash"`        // FileNode 的 Hash (Merkle Root)
-	Size       int64     `json:"size"`        // 文件大小
-	ModifiedAt time.Time `json:"modified_at"` // 修改时间
+	Path       string     `json:"path"`        // 相对路径 (如 "data/model.bin")
+	Hash       types.Hash `json:"hash"`        // FileNode 的 Hash (Merkle Root)
+	Size       int64      `json:"size"`        // 文件大小
+	ModifiedAt time.Time  `json:"modified_at"` // 修改时间
 }
 
 // Index 管理暂存区状态
@@ -50,7 +51,7 @@ func NewIndex(indexPath string) (*Index, error) {
 }
 
 // Add 更新一条记录
-func (i *Index) Add(path string, hash string, size int64) {
+func (i *Index) Add(path string, hash types.Hash, size int64) {
 	key := CleanPath(path) // <--- 统一清洗
 	i.mu.Lock()
 	defer i.mu.Unlock()

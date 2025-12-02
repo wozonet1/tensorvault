@@ -3,6 +3,7 @@ package core
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"tensorvault/pkg/types"
 	"testing"
 	"time"
 
@@ -16,9 +17,9 @@ import (
 
 // mockHash 生成一个合法的 32 字节 Hex 字符串 (64字符长度)
 // 用于满足 Link 对 Hex 格式的要求
-func mockHash(input string) string {
+func mockHash(input string) types.Hash {
 	sum := sha256.Sum256([]byte(input))
-	return hex.EncodeToString(sum[:])
+	return types.Hash(hex.EncodeToString(sum[:]))
 }
 
 // -----------------------------------------------------------------------------
@@ -64,7 +65,7 @@ func TestLink_Unmarshal_Strictness(t *testing.T) {
 	// Case A: 缺少 0x00 前缀
 	// 构造一个 Tag 42，但内容没有 0x00
 	// 手动构造错误数据: Tag 42 (d82a) + Bytes 32 (5820) + ...
-	badPrefixHex := "d82a5820" + mockHash("bad")
+	badPrefixHex := string("d82a5820" + mockHash("bad"))
 	badPrefixBytes, _ := hex.DecodeString(badPrefixHex)
 
 	var l Link
@@ -74,7 +75,7 @@ func TestLink_Unmarshal_Strictness(t *testing.T) {
 
 	// Case B: 错误的 Tag (不是 42)
 	// Tag 43 (d82b) ...
-	wrongTagHex := "d82b582100" + mockHash("wrong")
+	wrongTagHex := string("d82b582100" + mockHash("wrong"))
 	wrongTagBytes, _ := hex.DecodeString(wrongTagHex)
 	err = l.UnmarshalCBOR(wrongTagBytes)
 	assert.Error(t, err)
@@ -89,8 +90,8 @@ func TestLink_Unmarshal_Strictness(t *testing.T) {
 func TestCanonical_Encoding(t *testing.T) {
 	// 构造一个 Commit
 	c, err := NewCommit(
-		mockHash("tree_root"),                              // 必须是合法 Hex
-		[]string{mockHash("parent1"), mockHash("parent2")}, // 必须是合法 Hex
+		mockHash("tree_root"), // 必须是合法 Hex
+		[]types.Hash{mockHash("parent1"), mockHash("parent2")}, // 必须是合法 Hex
 		"author_test",
 		"message_test",
 	)

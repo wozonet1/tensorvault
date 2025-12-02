@@ -11,6 +11,7 @@ import (
 	"tensorvault/pkg/meta"
 	"tensorvault/pkg/refs"
 	"tensorvault/pkg/storage/disk"
+	"tensorvault/pkg/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,7 +82,7 @@ func TestIntegration_CommitFlow(t *testing.T) {
 	// tv add data.txt
 	// 这里我们直接操作 Index API，模拟 add 的效果 (也可以直接调 addCmd.RunE)
 	// 为了聚焦测试 Commit，我们假设 Add 已经成功
-	fileHash := "5eb63bbbe01eeed093cb22bb8f5acdc3" // md5("hello world") 假装是这个
+	fileHash := types.Hash("5eb63bbbe01eeed093cb22bb8f5acdc3") // md5("hello world") 假装是这个
 	app.Index.Add("data.txt", fileHash, 11)
 
 	// 3. 执行 Commit 命令

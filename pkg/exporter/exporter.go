@@ -11,6 +11,7 @@ import (
 
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/storage"
+	"tensorvault/pkg/types"
 )
 
 type Exporter struct {
@@ -22,7 +23,7 @@ func NewExporter(store storage.Store) *Exporter {
 }
 
 // ExportFile 根据 FileNode 的 Hash，将还原的文件写入 writer
-func (e *Exporter) ExportFile(ctx context.Context, hash string, writer io.Writer) error {
+func (e *Exporter) ExportFile(ctx context.Context, hash types.Hash, writer io.Writer) error {
 	// 1. 获取 FileNode 元数据
 	// 注意：storage.Get 返回的是 io.ReadCloser，我们需要读出来反序列化
 	nodeReader, err := e.store.Get(ctx, hash)
@@ -75,7 +76,7 @@ func (e *Exporter) ExportFile(ctx context.Context, hash string, writer io.Writer
 
 	return nil
 }
-func (e *Exporter) PrintObject(ctx context.Context, hash string, writer io.Writer) error {
+func (e *Exporter) PrintObject(ctx context.Context, hash types.Hash, writer io.Writer) error {
 	// 1. 读取原始字节
 	reader, err := e.store.Get(ctx, hash)
 	if err != nil {
@@ -171,10 +172,10 @@ func fmtSize(s int64) string {
 	return fmt.Sprintf("%d", s)
 }
 
-type RestoreCallback func(path string, hash string, size int64)
+type RestoreCallback func(path string, hash types.Hash, size int64)
 
 // RestoreTree 递归地将 Merkle Tree 还原到目标目录
-func (e *Exporter) RestoreTree(ctx context.Context, treeHash string, targetDir string, onRestore RestoreCallback) error {
+func (e *Exporter) RestoreTree(ctx context.Context, treeHash types.Hash, targetDir string, onRestore RestoreCallback) error {
 	// 1. 获取 Tree 对象
 	reader, err := e.store.Get(ctx, treeHash)
 	if err != nil {

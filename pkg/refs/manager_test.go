@@ -2,9 +2,11 @@ package refs
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"tensorvault/pkg/meta"
+	"tensorvault/pkg/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,13 +15,14 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// TODO: read
 // setupTestEnv 搭建基于内存 SQLite 的测试环境
 func setupTestEnv(t *testing.T) *Manager {
 	// 1. 初始化内存 SQLite
-	// "file::memory:?cache=shared" 确保连接池共享同一个内存实例
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent), // 测试时静默日志
+	// 使用独立的 DSN 保证每个测试函数一个干净的数据库
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
+
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	require.NoError(t, err)
 
@@ -45,7 +48,7 @@ func TestRefFlow_Lifecycle(t *testing.T) {
 
 	// 2. 第一次提交 (Initial Commit)
 	// oldVersion 传 0
-	hash1 := "hash_v1_111111111111111111111111111111111111111111111111111111111111"
+	hash1 := types.Hash("hash_v1_111111111111111111111111111111111111111111111111111111111111")
 	err = mgr.UpdateHead(ctx, hash1, 0)
 	require.NoError(t, err, "首次 UpdateHead 应该成功")
 
@@ -57,7 +60,7 @@ func TestRefFlow_Lifecycle(t *testing.T) {
 
 	// 4. 第二次提交 (Normal Update)
 	// 基于版本 1 更新
-	hash2 := "hash_v2_222222222222222222222222222222222222222222222222222222222222"
+	hash2 := types.Hash("hash_v2_222222222222222222222222222222222222222222222222222222222222")
 	err = mgr.UpdateHead(ctx, hash2, 1)
 	require.NoError(t, err, "基于正确版本的更新应该成功")
 
@@ -72,7 +75,7 @@ func TestRefFlow_OptimisticLocking(t *testing.T) {
 	ctx := context.Background()
 
 	// 1. 初始化到版本 1
-	hash1 := "hash_v1"
+	hash1 := types.Hash("hash_v1")
 	require.NoError(t, mgr.UpdateHead(ctx, hash1, 0))
 
 	// 2. 获取当前状态 (Version = 1)
@@ -85,14 +88,14 @@ func TestRefFlow_OptimisticLocking(t *testing.T) {
 	// 用户 B 抢先一步基于版本 1 更新到了 hash_B
 
 	// 用户 B 先成功了
-	hashB := "hash_user_B"
+	hashB := types.Hash("hash_user_B")
 	err = mgr.UpdateHead(ctx, hashB, ver)
 	require.NoError(t, err, "用户 B 应该更新成功")
 
 	// 现在数据库里的版本应该是 2
 
 	// 用户 A 姗姗来迟，拿着过期的 ver=1 试图更新
-	hashA := "hash_user_A"
+	hashA := types.Hash("hash_user_A")
 	err = mgr.UpdateHead(ctx, hashA, ver) // 这里的 ver 还是 1
 
 	// 4. 验证 CAS 失败

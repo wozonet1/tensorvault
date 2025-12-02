@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"tensorvault/pkg/types"
 
 	"github.com/fxamacker/cbor/v2"
 )
@@ -60,7 +61,7 @@ var decOptions = cbor.DecOptions{
 var dm, _ = decOptions.DecMode()
 
 // CalculateHash 计算对象的 Hash (CID) 和序列化数据
-func CalculateHash(v any) (string, []byte, error) {
+func CalculateHash(v any) (types.Hash, []byte, error) {
 	data, err := em.Marshal(v)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to marshal object: %w", err)
@@ -70,13 +71,13 @@ func CalculateHash(v any) (string, []byte, error) {
 	hashBytes := sha256.Sum256(data)
 	hashStr := hex.EncodeToString(hashBytes[:])
 
-	return hashStr, data, nil
+	return types.Hash(hashStr), data, nil
 }
 
 // CalculateBlobHash 计算原始数据块的 Hash
-func CalculateBlobHash(data []byte) string {
+func CalculateBlobHash(data []byte) types.Hash {
 	hashBytes := sha256.Sum256(data)
-	return hex.EncodeToString(hashBytes[:])
+	return types.Hash(hex.EncodeToString(hashBytes[:]))
 }
 
 // DecodeObject 通用的解码函数 (供外部使用)

@@ -9,6 +9,7 @@ import (
 
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/storage"
+	"tensorvault/pkg/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,11 +21,11 @@ import (
 
 // 简单的 Mock 对象，用于充当 Chunk
 type mockObject struct {
-	id   string
+	id   types.Hash
 	data []byte
 }
 
-func (m mockObject) ID() string            { return m.id }
+func (m mockObject) ID() types.Hash        { return m.id }
 func (m mockObject) Bytes() []byte         { return m.data }
 func (m mockObject) Type() core.ObjectType { return core.TypeChunk }
 func (m mockObject) Size() int64           { return int64(len(m.data)) }

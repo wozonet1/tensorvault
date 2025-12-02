@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"io"
-
 	"tensorvault/pkg/core"
+	"tensorvault/pkg/types"
 )
 
 var (
@@ -23,16 +23,16 @@ type Store interface {
 	// Get 根据 Hash 读取原始数据
 	// 注意：这里返回的是 io.ReadCloser 而不是 []byte
 	// 原因：为了支持大文件的流式读取 (Stream)，避免一次性把 100MB 读进内存
-	Get(ctx context.Context, hash string) (io.ReadCloser, error)
+	Get(ctx context.Context, hash types.Hash) (io.ReadCloser, error)
 
 	// Has 检查对象是否存在 (用于去重逻辑)
-	Has(ctx context.Context, hash string) (bool, error)
+	Has(ctx context.Context, hash types.Hash) (bool, error)
 
 	// Delete (可选，MVP 阶段可以先不实现，因为 CAS 通常只增不删)
-	// Delete(ctx context.Context, hash string) error
+	// Delete(ctx context.Context, hash types.Hash) error
 
 	// ExpandHash 将短哈希前缀扩展为完整哈希
 	// 如果匹配到 0 个，返回 ( "", ErrNotFound )
 	// 如果匹配到 > 1 个，返回 ( "", ErrAmbiguousHash )
-	ExpandHash(ctx context.Context, shortHash string) (string, error)
+	ExpandHash(ctx context.Context, shortHash types.HashPrefix) (types.Hash, error)
 }

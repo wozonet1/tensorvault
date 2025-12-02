@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"tensorvault/pkg/core"
+	"tensorvault/pkg/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,11 +15,11 @@ import (
 
 // 模拟一个简单的 Object 实现，用于测试
 type mockObject struct {
-	id   string
+	id   types.Hash
 	data []byte
 }
 
-func (m mockObject) ID() string            { return m.id }
+func (m mockObject) ID() types.Hash        { return m.id }
 func (m mockObject) Bytes() []byte         { return m.data }
 func (m mockObject) Type() core.ObjectType { return core.TypeChunk }
 func (m mockObject) Size() int64           { return int64(len(m.data)) }
@@ -86,11 +87,11 @@ func TestDiskAdapter_ExpandHash(t *testing.T) {
 	tests := []struct {
 		name      string
 		input     string
-		wantHash  string
+		wantHash  types.Hash
 		wantErr   bool
 		errString string // 可选，用于匹配部分错误信息
 	}{
-		{"Exact match", objC.id, objC.id, false, ""},
+		{"Exact match", string(objC.id), objC.id, false, ""},
 		{"Unique prefix (4 chars)", "2222", objC.id, false, ""},
 		{"Unique prefix (long)", "2222cccc", objC.id, false, ""},
 		{"Ambiguous prefix", "1111", "", true, "ambiguous"}, // 1111 同时匹配 A 和 B
@@ -100,7 +101,7 @@ func TestDiskAdapter_ExpandHash(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := store.ExpandHash(ctx, tt.input)
+			got, err := store.ExpandHash(ctx, types.HashPrefix(tt.input))
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errString != "" {

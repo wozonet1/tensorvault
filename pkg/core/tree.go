@@ -1,5 +1,7 @@
 package core
 
+import "tensorvault/pkg/types"
+
 type EntryType string
 
 const (
@@ -15,8 +17,8 @@ type TreeEntry struct {
 }
 
 type Tree struct {
-	hash     string `cbor:"-"`
-	rawBytes []byte `cbor:"-"`
+	hash     types.Hash `cbor:"-"`
+	rawBytes []byte     `cbor:"-"`
 
 	TypeVal ObjectType  `cbor:"t"`
 	Entries []TreeEntry `cbor:"e"`
@@ -39,7 +41,7 @@ func NewTree(entries []TreeEntry) (*Tree, error) {
 
 // NewFileEntry 创建一个文件类型的目录项
 // 它封装了 Link 的创建逻辑
-func NewFileEntry(name string, hash string, size int64) TreeEntry {
+func NewFileEntry(name string, hash types.Hash, size int64) TreeEntry {
 	return TreeEntry{
 		Name: name,
 		Type: EntryFile,
@@ -50,7 +52,7 @@ func NewFileEntry(name string, hash string, size int64) TreeEntry {
 
 // NewDirEntry 创建一个目录类型的目录项
 // 强制规定目录大小为 0 (或者未来你可以改为累加大小，只需改这里一处)
-func NewDirEntry(name string, hash string) TreeEntry {
+func NewDirEntry(name string, hash types.Hash) TreeEntry {
 	return TreeEntry{
 		Name: name,
 		Type: EntryDir,
@@ -60,5 +62,5 @@ func NewDirEntry(name string, hash string) TreeEntry {
 }
 
 func (t *Tree) Type() ObjectType { return TypeTree }
-func (t *Tree) ID() string       { return t.hash }
+func (t *Tree) ID() types.Hash   { return t.hash }
 func (t *Tree) Bytes() []byte    { return t.rawBytes }

@@ -1,5 +1,7 @@
 package core
 
+import "tensorvault/pkg/types"
+
 // ObjectType 定义了 TensorVault 中的对象类型
 type ObjectType string
 
@@ -17,7 +19,7 @@ type Object interface {
 
 	// ID 返回对象的哈希值 (CID)
 	// 注意：在对象被密封(Seal/Serialize)之前，这可能为空
-	ID() string
+	ID() types.Hash
 
 	// Bytes 返回对象的序列化数据 (用于存储)
 	Bytes() []byte

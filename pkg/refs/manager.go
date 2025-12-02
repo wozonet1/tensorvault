@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"tensorvault/pkg/meta"
+	"tensorvault/pkg/types"
 )
 
 var (
@@ -28,7 +29,7 @@ func NewManager(repo *meta.Repository) *Manager {
 
 // GetHead 读取当前 HEAD 的 Hash 和 版本号
 // 返回: (hash, version, error)
-func (m *Manager) GetHead(ctx context.Context) (string, int64, error) {
+func (m *Manager) GetHead(ctx context.Context) (types.Hash, int64, error) {
 	ref, err := m.repo.GetRef(ctx, "HEAD")
 	if err != nil {
 		if errors.Is(err, meta.ErrRefNotFound) {
@@ -42,7 +43,7 @@ func (m *Manager) GetHead(ctx context.Context) (string, int64, error) {
 // UpdateHead 原子更新 HEAD
 // 必须提供 oldVersion 以进行乐观锁检查 (CAS)
 // 如果是第一次提交，oldVersion 传 0
-func (m *Manager) UpdateHead(ctx context.Context, newHash string, oldVersion int64) error {
+func (m *Manager) UpdateHead(ctx context.Context, newHash types.Hash, oldVersion int64) error {
 	err := m.repo.UpdateRef(ctx, "HEAD", newHash, oldVersion)
 	if err != nil {
 		if errors.Is(err, meta.ErrConcurrentUpdate) {

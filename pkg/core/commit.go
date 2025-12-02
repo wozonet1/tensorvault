@@ -1,10 +1,13 @@
 package core
 
-import "time"
+import (
+	"tensorvault/pkg/types"
+	"time"
+)
 
 type Commit struct {
-	hash     string `cbor:"-"`
-	rawBytes []byte `cbor:"-"`
+	hash     types.Hash `cbor:"-"`
+	rawBytes []byte     `cbor:"-"`
 
 	TypeVal ObjectType `cbor:"t"`
 
@@ -19,7 +22,7 @@ type Commit struct {
 	Timestamp int64 `cbor:"ts"`
 }
 
-func NewCommit(treeHash string, parents []string, author, msg string) (*Commit, error) {
+func NewCommit(treeHash types.Hash, parents []types.Hash, author, msg string) (*Commit, error) {
 	// 转换 parents string -> Link
 	parentLinks := make([]Link, len(parents))
 	for i, p := range parents {
@@ -45,5 +48,5 @@ func NewCommit(treeHash string, parents []string, author, msg string) (*Commit, 
 }
 
 func (c *Commit) Type() ObjectType { return TypeCommit }
-func (c *Commit) ID() string       { return c.hash }
+func (c *Commit) ID() types.Hash   { return c.hash }
 func (c *Commit) Bytes() []byte    { return c.rawBytes }

@@ -10,6 +10,7 @@ import (
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/index"
 	"tensorvault/pkg/storage"
+	"tensorvault/pkg/types"
 )
 
 // Builder 负责将暂存区转换为 Merkle Tree
@@ -22,7 +23,7 @@ func NewBuilder(store storage.Store) *Builder {
 }
 
 // Build 执行构建过程，返回根树的 Hash
-func (b *Builder) Build(ctx context.Context, idx *index.Index) (string, error) {
+func (b *Builder) Build(ctx context.Context, idx *index.Index) (types.Hash, error) {
 	// 1. 构建内存中的目录树结构 (Intermediate Tree)
 	root := newDirNode("")
 
@@ -102,7 +103,7 @@ func (n *node) addFile(fullPath string, entry index.Entry) {
 }
 
 // writeNode 递归地将内存节点转换为 core.Tree 并写入存储 (核心算法)
-func (b *Builder) writeNode(ctx context.Context, n *node) (string, error) {
+func (b *Builder) writeNode(ctx context.Context, n *node) (types.Hash, error) {
 	// Base Case: 如果是文件，直接返回它在 Index 里记录的 FileNode Hash
 	if !n.isDir {
 		return n.entry.Hash, nil

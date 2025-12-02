@@ -1,5 +1,7 @@
 package core
 
+import "tensorvault/pkg/types"
+
 // ChunkLink 描述了 FileNode 对底层 Chunk 的引用
 type ChunkLink struct {
 	Cid  Link `cbor:"h"` // CHANGE: string -> Link
@@ -20,8 +22,8 @@ func NewChunkLink(c *Chunk) ChunkLink {
 // FileNode (ADL) 将散乱的 Chunk 组装成一个逻辑上的大文件
 type FileNode struct {
 	// 自身标识
-	hash     string `cbor:"-"` // 不参与序列化
-	rawBytes []byte `cbor:"-"` // 缓存序列化后的数据
+	hash     types.Hash `cbor:"-"` // 不参与序列化
+	rawBytes []byte     `cbor:"-"` // 缓存序列化后的数据
 
 	// 核心数据
 	TypeVal   ObjectType  `cbor:"t"`  // 必须是 "filenode"
@@ -46,7 +48,7 @@ func NewFileNode(totalSize int64, chunks []ChunkLink) (*FileNode, error) {
 }
 
 func (f *FileNode) Type() ObjectType { return TypeFileNode }
-func (f *FileNode) ID() string       { return f.hash }
+func (f *FileNode) ID() types.Hash   { return f.hash }
 func (f *FileNode) Bytes() []byte    { return f.rawBytes }
 func (f *FileNode) Size() int64      { return f.TotalSize }
 

@@ -9,6 +9,7 @@ import (
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/refs"
 	"tensorvault/pkg/treebuilder"
+	"tensorvault/pkg/types"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -55,11 +56,11 @@ var commitCmd = &cobra.Command{
 		// ---------------------------------------------------------
 		// A. 获取 Parent Commit (HEAD)
 		parentHash, headVersion, err := TV.Refs.GetHead(ctx)
-		var parents []string
+		var parents []types.Hash
 
 		if err == nil {
 			// 不是第一次提交，有父节点
-			parents = []string{parentHash}
+			parents = []types.Hash{parentHash}
 		} else if errors.Is(err, refs.ErrNoHead) {
 			// 第一次提交 (Initial Commit)，没有父节点 -> parents 为空
 			fmt.Println("🌱 Initial Commit")

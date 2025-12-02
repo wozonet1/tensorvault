@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/hex"
 	"fmt"
+	"tensorvault/pkg/types"
 
 	"github.com/fxamacker/cbor/v2"
 )
@@ -11,7 +12,7 @@ import (
 // 在 Go 层面，它只是一个包装了 Hash 字符串的结构体
 // 在 CBOR 层面，它会被序列化为 Tag 42(0x00 + HashBytes)
 type Link struct {
-	Hash string
+	Hash types.Hash
 }
 
 const (
@@ -19,7 +20,7 @@ const (
 )
 
 // NewLink 辅助函数
-func NewLink(hash string) Link {
+func NewLink(hash types.Hash) Link {
 	return Link{Hash: hash}
 }
 
@@ -27,7 +28,8 @@ func NewLink(hash string) Link {
 // 规范：Tag 42, Content = [0x00, byte1, byte2...]
 func (l Link) MarshalCBOR() ([]byte, error) {
 	// 1. 解码 Hex 字符串
-	hashBytes, err := hex.DecodeString(l.Hash)
+	hashStr := string(l.Hash)
+	hashBytes, err := hex.DecodeString(hashStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid hash format in link: %w", err)
 	}
@@ -72,6 +74,6 @@ func (l *Link) UnmarshalCBOR(data []byte) error {
 	}
 
 	// 4. 还原 Hash (去掉前缀)
-	l.Hash = hex.EncodeToString(bytes[1:])
+	l.Hash = types.Hash(hex.EncodeToString(bytes[1:]))
 	return nil
 }

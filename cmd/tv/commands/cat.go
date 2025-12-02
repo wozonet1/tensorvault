@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"tensorvault/pkg/exporter"
+	"tensorvault/pkg/types"
 
 	"github.com/spf13/cobra"
 )
@@ -20,7 +21,7 @@ var catCmd = &cobra.Command{
 			return fmt.Errorf("app not initialized")
 		}
 
-		input := args[0]
+		input := types.HashPrefix(args[0])
 
 		// 1. 自动扩展短哈希
 		fullHash, err := TV.Store.ExpandHash(context.Background(), input)
@@ -29,7 +30,7 @@ var catCmd = &cobra.Command{
 		}
 
 		// 如果扩展后的哈希和输入不一样，提示用户
-		if fullHash != input {
+		if fullHash != types.Hash(input) {
 			fmt.Printf("Ambiguous argument '%s': resolved to %s\n\n", input, fullHash)
 		}
 

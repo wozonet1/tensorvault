@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"tensorvault/pkg/core"
+	"tensorvault/pkg/types"
 
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -52,8 +53,7 @@ func (r *Repository) GetRef(ctx context.Context, name string) (*Ref, error) {
 
 // UpdateRef 原子更新引用 (CAS - Compare And Swap)
 // oldVersion: 你之前读到的版本号。如果数据库里现在的版本号不等于这个，说明有人抢先改了，更新失败。
-// TODO: read
-func (r *Repository) UpdateRef(ctx context.Context, name string, newHash string, oldVersion int64) error {
+func (r *Repository) UpdateRef(ctx context.Context, name string, newHash types.Hash, oldVersion int64) error {
 	// 开启事务 (虽然单条 SQL 不需要显式事务，但为了扩展性保留习惯)
 	return r.db.GetConn().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 场景 A: 第一次创建 (Create)
@@ -102,7 +102,7 @@ func (r *Repository) UpdateRef(ctx context.Context, name string, newHash string,
 // 这样我们就可以用 SQL 进行复杂查询 (按作者、时间、Meta 搜索)
 func (r *Repository) IndexCommit(ctx context.Context, c *core.Commit) error {
 	// 1. 转换 Parents (Link -> []string -> JSON)
-	var parentHashes []string
+	var parentHashes []types.Hash
 	for _, p := range c.Parents {
 		parentHashes = append(parentHashes, p.Hash)
 	}
@@ -135,7 +135,7 @@ func (r *Repository) IndexCommit(ctx context.Context, c *core.Commit) error {
 	return nil
 }
 
-func (r *Repository) GetCommit(ctx context.Context, hash string) (*CommitModel, error) {
+func (r *Repository) GetCommit(ctx context.Context, hash types.Hash) (*CommitModel, error) {
 	var commit CommitModel
 	// 因为 Hash 是主键，查询非常快
 	err := r.db.GetConn().WithContext(ctx).

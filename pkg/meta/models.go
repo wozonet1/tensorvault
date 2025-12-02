@@ -1,6 +1,7 @@
 package meta
 
 import (
+	"tensorvault/pkg/types"
 	"time"
 
 	"gorm.io/datatypes"
@@ -13,7 +14,7 @@ type Ref struct {
 	Name string `gorm:"primaryKey;type:varchar(255)"`
 
 	// CommitHash 指向当前的 Commit ID
-	CommitHash string `gorm:"type:char(64);not null"`
+	CommitHash types.Hash `gorm:"type:char(64);not null"`
 
 	// Version 用于乐观锁并发控制 (CAS)
 	// 每次更新时 +1，防止并发覆盖
@@ -27,7 +28,7 @@ type Ref struct {
 // 注意：为了避免跟 core.Commit 混淆，我们叫它 CommitModel
 type CommitModel struct {
 	// Hash 是主键 (Merkle Root)
-	Hash string `gorm:"primaryKey;type:char(64)"`
+	Hash types.Hash `gorm:"primaryKey;type:char(64)"`
 
 	// 基础元数据 (B-Tree 索引，适合排序和精确查找)
 	Author    string `gorm:"index;type:varchar(100)"`
@@ -35,7 +36,7 @@ type CommitModel struct {
 	Timestamp int64  `gorm:"index"` // 使用 int64 存时间戳，方便范围查询
 
 	// 树结构指针
-	TreeHash string `gorm:"type:char(64);not null"`
+	TreeHash types.Hash `gorm:"type:char(64);not null"`
 
 	// --- AI Infra 核心特性 ---
 
