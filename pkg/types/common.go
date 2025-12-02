@@ -14,4 +14,6 @@ func (h Hash) IsValid() bool { return len(h) == 64 } // 简单的长度检查
 
 type HashPrefix string
 
+func (p HashPrefix) String() string { return string(p) }
+
 type RepoPath string
