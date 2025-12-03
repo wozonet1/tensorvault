@@ -53,3 +53,27 @@ func (m *Manager) UpdateHead(ctx context.Context, newHash types.Hash, oldVersion
 	}
 	return nil
 }
+
+// GetRef 获取任意引用的状态。如果引用不存在，返回 (empty, 0, nil) 以便上层进行初始化。
+func (m *Manager) GetRef(ctx context.Context, name string) (types.Hash, int64, error) {
+	ref, err := m.repo.GetRef(ctx, name)
+	if err != nil {
+		if errors.Is(err, meta.ErrRefNotFound) {
+			return "", 0, nil
+		}
+		return "", 0, fmt.Errorf("failed to get ref %s: %w", name, err)
+	}
+	return ref.CommitHash, ref.Version, nil
+}
+
+// UpdateRef 原子更新任意引用
+func (m *Manager) UpdateRef(ctx context.Context, name string, newHash types.Hash, oldVersion int64) error {
+	err := m.repo.UpdateRef(ctx, name, newHash, oldVersion)
+	if err != nil {
+		if errors.Is(err, meta.ErrConcurrentUpdate) {
+			return ErrStaleHead
+		}
+		return fmt.Errorf("failed to update ref %s: %w", name, err)
+	}
+	return nil
+}

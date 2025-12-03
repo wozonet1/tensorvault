@@ -44,7 +44,11 @@ message UploadResponse {
 }
 
 message DownloadRequest {
-  string hash = 1[(buf.validate.field).string.len = 64]; // 要下载的文件/对象的 Hash
+  string hash = 1 [
+    (buf.validate.field).string.min_len = 4, 
+    (buf.validate.field).string.max_len = 64,
+    (buf.validate.field).string.pattern = "^[a-fA-F0-9]+$"
+  ];  // 要下载的文件/对象的 Hash
 }
 
 message DownloadResponse {
@@ -66,7 +70,7 @@ message CommitRequest {
 
   // 2. [新增] 核心数据指针 (Payload)
   // 客户端必须先计算出当前的目录树 Hash，告诉服务端："这是我现在的项目快照"
-  string tree_hash = 3; 
+  string tree_hash = 3 [(buf.validate.field).string.len = 64];
 
   // 3. [新增] 历史关系 (History)
   // 明确指出这个 Commit 的父节点是谁。

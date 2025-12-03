@@ -529,9 +529,9 @@ const file_v1_tensorvault_proto_rawDesc = "" +
 	"\x0eUploadResponse\x12\x1c\n" +
 	"\x04hash\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x98\x01@R\x04hash\x12\x1d\n" +
 	"\n" +
-	"total_size\x18\x02 \x01(\x03R\ttotalSize\"/\n" +
-	"\x0fDownloadRequest\x12\x1c\n" +
-	"\x04hash\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x98\x01@R\x04hash\"1\n" +
+	"total_size\x18\x02 \x01(\x03R\ttotalSize\"@\n" +
+	"\x0fDownloadRequest\x12-\n" +
+	"\x04hash\x18\x01 \x01(\tB\x19\xbaH\x16r\x14\x10\x04\x18@2\x0e^[a-fA-F0-9]+$R\x04hash\"1\n" +
 	"\x10DownloadResponse\x12\x1d\n" +
 	"\n" +
 	"chunk_data\x18\x01 \x01(\fR\tchunkData\"\x10\n" +
@@ -539,11 +539,11 @@ const file_v1_tensorvault_proto_rawDesc = "" +
 	"\x0fGetHeadResponse\x12\x1c\n" +
 	"\x04hash\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x98\x01@R\x04hash\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x03R\aversion\x12\x16\n" +
-	"\x06exists\x18\x03 \x01(\bR\x06exists\"\xbc\x01\n" +
+	"\x06exists\x18\x03 \x01(\bR\x06exists\"\xc6\x01\n" +
 	"\rCommitRequest\x12!\n" +
 	"\amessage\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\amessage\x12\x16\n" +
-	"\x06author\x18\x02 \x01(\tR\x06author\x12\x1b\n" +
-	"\ttree_hash\x18\x03 \x01(\tR\btreeHash\x122\n" +
+	"\x06author\x18\x02 \x01(\tR\x06author\x12%\n" +
+	"\ttree_hash\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x98\x01@R\btreeHash\x122\n" +
 	"\rparent_hashes\x18\x04 \x03(\tB\r\xbaH\n" +
 	"\x92\x01\a\"\x05r\x03\x98\x01@R\fparentHashes\x12\x1f\n" +
 	"\vbranch_name\x18\x05 \x01(\tR\n" +
