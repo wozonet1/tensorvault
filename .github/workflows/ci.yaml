@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  # 任务 1: 代码质量检查 (静态分析)
+  quality:
+    name: Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 安装 Go
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: false # golangci-lint action 自带缓存
+
+      # 安装 Buf (用于生成代码验证)
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 运行 golangci-lint
+      - name: Run GolangCI-Lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          args: --timeout=5m
+
+      # 检查 Proto 规范
+      - name: Run Buf Lint
+        uses: bufbuild/buf-lint-action@v1
+
+  # 任务 2: 测试 (单元测试 + 集成测试)
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-latest
+    services:
+      # 启动 Redis 服务 (集成测试需要)
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Install dependencies
+        run: go mod download
+
+      # 安装 Buf 并生成代码 (测试依赖生成的代码)
+      - name: Setup Buf & Generate
+        uses: bufbuild/buf-setup-action@v1
+      - run: buf generate
+
+      # 运行所有测试 (包含 Race 检测)
+      # 注意：我们在 Makefile 里已经排除了 pkg/api，这里直接复用 Makefile
+      - name: Run Tests
+        run: make test
+
+      # (可选) 运行覆盖率检查
+      - name: Check Coverage
+        run: make coverage

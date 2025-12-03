@@ -1,0 +1,36 @@
+# .pre-commit-config.yaml
+repos:
+  # 1. 基础文件检查
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files # 防止不小心把 1GB 模型提交上来
+
+  # 2. Go 代码格式化与 Lint
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+      - id: go-imports
+      # 注意：我们在本地不跑 golangci-lint，因为它太慢了，可能会阻塞 commit。
+      # 我们把它留给 CI，或者你可以手动 make lint
+
+  # 3. Protobuf 检查 (Buf)
+  # 确保你提交的 proto 文件格式正确，且没有破坏性变更
+  - repo: local
+    hooks:
+      - id: buf-lint
+        name: buf lint
+        entry: buf lint
+        language: system
+        types: [proto]
+      # - id: buf-breaking # 可选：检查是否破坏了兼容性
+
+  # 4. Python 代码检查 (为 HelixPipe 准备)
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
