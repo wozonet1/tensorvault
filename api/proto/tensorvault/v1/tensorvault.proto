@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package tensorvault.v1;
+
+option go_package = "tensorvault/pkg/api/tvrpc/v1";
+import "buf/validate/validate.proto";
+// DataService 负责数据的 IO (对应 Ingester/Exporter)
+service DataService {
+  // Upload: 客户端流式上传 (Client-Side Streaming)
+  // 客户端源源不断发 Chunk，服务器最后返回一个 FileNode 的 Hash
+  rpc Upload(stream UploadRequest) returns (UploadResponse);
+
+  // Download: 服务器流式响应 (Server-Side Streaming)
+  // 客户端发一个 Hash，服务器源源不断吐出二进制流
+  rpc Download(DownloadRequest) returns (stream DownloadResponse);
+}
+
+// MetaService 负责元数据管理 (对应 Meta/Refs)
+service MetaService {
+  // 获取当前的 HEAD 指向
+  rpc GetHead(GetHeadRequest) returns (GetHeadResponse);
+  
+  // 提交一个新的版本
+  rpc Commit(CommitRequest) returns (CommitResponse);
+}
+
+// --- 消息定义 ---
+
+message UploadRequest {
+  // oneof 是一种联合类型，意味着一次请求要么传元数据，要么传二进制
+  oneof payload {
+    FileMeta meta = 1; // 第一次发送：文件名、大小等
+    bytes chunk_data = 2; // 后续发送：二进制块
+  }
+}
+
+message FileMeta {
+  string path = 1;
+}
+
+message UploadResponse {
+  string hash = 1[(buf.validate.field).string.len = 64]; // 最终生成的 Merkle Root
+  int64 total_size = 2;
+}
+
+message DownloadRequest {
+  string hash = 1[(buf.validate.field).string.len = 64]; // 要下载的文件/对象的 Hash
+}
+
+message DownloadResponse {
+  bytes chunk_data = 1; // 二进制流片段
+}
+
+message GetHeadRequest {}
+
+message GetHeadResponse {
+  string hash = 1[(buf.validate.field).string.len = 64];
+  int64 version = 2; // 用于乐观锁
+  bool exists = 3;
+}
+
+message CommitRequest {
+  // 1. 基础元数据
+  string message = 1[(buf.validate.field).string.min_len = 1];
+  string author = 2;    // 未来可能从 Auth Token 中提取，但目前保留
+
+  // 2. [新增] 核心数据指针 (Payload)
+  // 客户端必须先计算出当前的目录树 Hash，告诉服务端："这是我现在的项目快照"
+  string tree_hash = 3; 
+
+  // 3. [新增] 历史关系 (History)
+  // 明确指出这个 Commit 的父节点是谁。
+  // 通常是客户端读取到的当前 HEAD。如果不传，服务端可能默认基于当前 HEAD（但会有并发风险）。
+  repeated string parent_hashes = 4[(buf.validate.field).repeated.items.string.len = 64]; 
+
+  // 4. [新增] 引用目标 (Reference)
+  // 你要更新哪个分支？默认可能是 "HEAD" 或 "refs/heads/main"
+  string branch_name = 5; 
+}
+
+message CommitResponse {
+  string commit_hash = 1[(buf.validate.field).string.len = 64];
+}
