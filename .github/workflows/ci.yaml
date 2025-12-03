@@ -55,15 +55,26 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.24"
 
       - name: Install dependencies
         run: go mod download
 
-      # 安装 Buf 并生成代码 (测试依赖生成的代码)
-      - name: Setup Buf & Generate
+      - name: Install Protoc Plugins
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      # 安装 Buf 工具
+      - name: Setup Buf
         uses: bufbuild/buf-setup-action@v1
-      - run: buf generate
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 生成代码 (现在插件已经装好了，这就不会报错了)
+      - name: Generate Protobuf Code
+        run: buf generate
 
       # 运行所有测试 (包含 Race 检测)
       # 注意：我们在 Makefile 里已经排除了 pkg/api，这里直接复用 Makefile

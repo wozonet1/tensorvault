@@ -3,16 +3,16 @@ version: v2
 
 # 输入源 (对应 buf.yaml 中的 module path)
 inputs:
-  - directory: api/proto/tensorvault
+  - directory: api/proto
 
 # 插件配置
 plugins:
   # 1. 生成 Go 结构体
   - local: protoc-gen-go
-    out: pkg/api/tvrpc
-    opt: paths=source_relative
+    out: .
+    opt: module=tensorvault
 
   # 2. 生成 gRPC 服务接口
   - local: protoc-gen-go-grpc
-    out: pkg/api/tvrpc
-    opt: paths=source_relative
+    out: .
+    opt: module=tensorvault

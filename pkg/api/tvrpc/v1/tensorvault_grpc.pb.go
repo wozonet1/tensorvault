@@ -2,12 +2,13 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             (unknown)
-// source: v1/tensorvault.proto
+// source: tensorvault/v1/tensorvault.proto
 
 package v1
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -163,7 +164,7 @@ var DataService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "v1/tensorvault.proto",
+	Metadata: "tensorvault/v1/tensorvault.proto",
 }
 
 const (
@@ -311,5 +312,5 @@ var MetaService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "v1/tensorvault.proto",
+	Metadata: "tensorvault/v1/tensorvault.proto",
 }

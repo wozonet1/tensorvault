@@ -4,7 +4,7 @@ version: v2
 # 定义包含 Proto 文件的模块路径
 # 这里指向我们的 api 目录
 modules:
-  - path: api/proto/tensorvault
+  - path: api/proto
     name: buf.build/tensorvault/api # 虚拟的模块名
     # 可以在这里为该模块单独配置 lint，也可以使用下面的全局 lint
 
