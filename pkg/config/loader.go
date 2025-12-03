@@ -66,8 +66,7 @@ func setDefaults() {
 	viper.SetDefault("database.sslmode", "disable")
 
 	// 存储默认值
-	wd, _ := os.Getwd()
-	defaultStorePath := filepath.Join(wd, ".tv", "objects")
+	defaultStorePath := filepath.Join(".", ".tv", "objects")
 	viper.SetDefault("storage.path", defaultStorePath)
 	viper.SetDefault("storage.type", "disk")
 }
