@@ -13,12 +13,9 @@ test:
 # 2. 生成覆盖率报告 (你现在用的)
 coverage:
 	@echo ">> Generating Coverage..."
-	
-	# 1. 使用 go list 列出所有包
-	# 2. 使用 grep -v 排除掉 api, proto, mock 等生成的代码目录
-	# 3. 将过滤后的包列表传给 go test
+
 	@go test -coverprofile=coverage.out $$(go list ./pkg/... ./cmd/... | grep -v "pkg/api" | grep -v "mock_")
-	
+
 	@go tool cover -func=coverage.out | grep total
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Open coverage.html to view details (Generated code excluded)."
@@ -27,7 +24,7 @@ coverage:
 # 只有在明确需要时才跑，模拟真实环境
 integration-test:
 	@echo ">> Running Integration Tests..."
-	@go test -tags=integration -count=1 ./cmd/... 
+	@go test -tags=integration -count=1 ./cmd/...
 
 # 4. 代码静态分析 (Lint) - 极其重要！
 lint:
