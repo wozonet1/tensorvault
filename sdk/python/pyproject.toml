@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tensorvault"
+version = "0.1.0"
+description = "Python SDK for TensorVault: The AI Data Infrastructure."
+requires-python = ">=3.9"
+dependencies = [
+    "grpcio>=1.50.0",
+    "protobuf>=4.0.0",
+    "google-api-python-client>=2.0.0",
+    # 【新增】这是关键！它包含了 buf.validate 的 Python 实现
+    "protovalidate>=0.1.0",
+]
+
+# 开发依赖 (用于测试和类型检查)
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "mypy>=1.0",
+    "grpcio-tools>=1.50.0", # 包含 protoc 编译器，虽然我们主要用 buf
+    "types-protobuf",       # MyPy 的类型存根
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]  # 告诉打包工具，源码在 src 目录下
+
+
+
+[tool.mypy]
+# 全局设置
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+# 告诉 MyPy 源码根目录在哪里，解决 import 路径解析问题
+mypy_path = "src"
+
+# --- 针对生成的代码的豁免规则 ---
+
+# 1. 忽略 tensorvault.v1 下生成的代码报错
+[[tool.mypy.overrides]]
+module = "tensorvault.v1.*"
+ignore_errors = true
+
+# 2. 忽略 buf.* 下生成的依赖代码报错
+[[tool.mypy.overrides]]
+module = "buf.*"
+ignore_errors = true

@@ -16,3 +16,14 @@ plugins:
   - local: protoc-gen-go-grpc
     out: .
     opt: module=tensorvault
+
+  # 2. Python (新增)
+  # 生成 Message 定义 (*_pb2.py)
+  - remote: buf.build/protocolbuffers/python
+    out: sdk/python/src
+  # 生成 gRPC 桩代码 (*_pb2_grpc.py)
+  - remote: buf.build/grpc/python
+    out: sdk/python/src
+  # 生成 Python 类型存根 (*.pyi)，这对 IDE 代码补全至关重要！
+  - remote: buf.build/protocolbuffers/pyi
+    out: sdk/python/src
