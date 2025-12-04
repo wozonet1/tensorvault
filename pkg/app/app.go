@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"tensorvault/pkg/exporter"
 	"tensorvault/pkg/index"
 	"tensorvault/pkg/meta"
 	"tensorvault/pkg/refs"
@@ -87,6 +88,17 @@ func NewApp() (*App, error) {
 		RepoPath:   localRepoPath,
 		Repository: metaRepo,
 	}, nil
+}
+
+// -----------------------------------------------------------------------------
+// Helper Methods (服务定位器模式)
+// -----------------------------------------------------------------------------
+
+// GetExporter 创建并返回一个新的 Exporter 实例
+// 为什么不把它作为 App 的字段？因为 Exporter 通常是无状态的，
+// 而且每次操作可能涉及不同的 Context 或配置微调，On-demand 创建更灵活且开销极低。
+func (a *App) GetExporter() *exporter.Exporter {
+	return exporter.NewExporter(a.Store)
 }
 
 // initStore 根据配置组装存储层 (Base Store + Cache Layer)
