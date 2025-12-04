@@ -117,7 +117,8 @@ func TestDataService_Upload_HappyPath(t *testing.T) {
 	assert.Equal(t, int64(len(data)), stream.Response.TotalSize)
 
 	// 4. 验证数据落地
-	exists, _ := app.Store.Has(context.Background(), types.Hash(stream.Response.Hash))
+	exists, err := app.Store.Has(context.Background(), types.Hash(stream.Response.Hash))
+	require.NoError(t, err)
 	assert.True(t, exists, "FileNode should be in store")
 }
 
@@ -143,10 +144,11 @@ func TestDataService_Download_HappyPath(t *testing.T) {
 	// 1. 准备数据：先手动存一个文件进去
 	data := []byte("downloadable content")
 	chunk := core.NewChunk(data)
-	app.Store.Put(ctx, chunk)
+	require.NoError(t, app.Store.Put(ctx, chunk))
 
-	fileNode, _ := core.NewFileNode(int64(len(data)), []core.ChunkLink{core.NewChunkLink(chunk)})
-	app.Store.Put(ctx, fileNode)
+	fileNode, err := core.NewFileNode(int64(len(data)), []core.ChunkLink{core.NewChunkLink(chunk)})
+	require.NoError(t, err)
+	require.NoError(t, app.Store.Put(ctx, fileNode))
 	targetHash := fileNode.ID()
 
 	// 2. 构造下载请求
@@ -154,7 +156,7 @@ func TestDataService_Download_HappyPath(t *testing.T) {
 	stream := &MockDownloadStream{}
 
 	// 3. 执行下载
-	err := svc.Download(req, stream)
+	err = svc.Download(req, stream)
 	require.NoError(t, err)
 
 	// 4. 验证收到的数据
