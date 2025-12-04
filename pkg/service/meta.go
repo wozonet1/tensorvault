@@ -35,7 +35,6 @@ func NewMetaService(application *app.App) *MetaService {
 }
 
 // GetHead 获取当前分支的 HEAD
-// 之前遗漏了这个方法，导致 fallback 到了 Unimplemented
 func (s *MetaService) GetHead(ctx context.Context, req *tvrpc.GetHeadRequest) (*tvrpc.GetHeadResponse, error) {
 	// 虽然 req 是空的，但校验是个好习惯
 	if err := s.validator.Validate(req); err != nil {

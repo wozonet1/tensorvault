@@ -2,73 +2,23 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	tvrpc "tensorvault/pkg/api/tvrpc/v1"
 	"tensorvault/pkg/app"
-	"tensorvault/pkg/core"
-	"tensorvault/pkg/index"
-	"tensorvault/pkg/meta"
-	"tensorvault/pkg/refs"
-	"tensorvault/pkg/storage/disk"
 	"tensorvault/pkg/types"
 )
 
 // setupTestService 构建一个隔离的 MetaService 测试环境
 func setupTestService(t *testing.T) (*MetaService, *app.App) {
-	tmpDir := t.TempDir()
+	app := setupTestApp(t)
 
-	// 1. 初始化存储
-	storePath := filepath.Join(tmpDir, "objects")
-	require.NoError(t, os.MkdirAll(storePath, 0755))
-	store, err := disk.NewAdapter(storePath)
-	require.NoError(t, err)
-
-	// 2. 初始化索引 (虽然 MetaService 不直接用 Index，但 App 需要)
-	idxPath := filepath.Join(tmpDir, "index.json")
-	require.NoError(t, os.WriteFile(idxPath, []byte("{}"), 0644))
-	idx, err := index.NewIndex(idxPath)
-	require.NoError(t, err)
-
-	// 3. 初始化内存数据库
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	require.NoError(t, err)
-
-	metaDB := meta.NewWithConn(db)
-	require.NoError(t, metaDB.AutoMigrate(&meta.Ref{}, &meta.CommitModel{}))
-
-	repo := meta.NewRepository(metaDB)
-	refMgr := refs.NewManager(repo)
-
-	// 4. 组装 App
-	application := &app.App{
-		Store:      store,
-		Index:      idx,
-		Refs:       refMgr,
-		RepoPath:   tmpDir,
-		Repository: repo,
-	}
-
-	return NewMetaService(application), application
-}
-
-// 辅助函数：生成合法 Hash
-func mockHash(input string) string {
-	return core.CalculateBlobHash([]byte(input)).String()
+	return NewMetaService(app), app
 }
 
 func TestMetaService_GetHead(t *testing.T) {
@@ -101,7 +51,7 @@ func TestMetaService_Commit_HappyPath(t *testing.T) {
 	req := &tvrpc.CommitRequest{
 		Message:    "First Commit",
 		Author:     "Tester",
-		TreeHash:   treeHash,
+		TreeHash:   treeHash.String(),
 		BranchName: "main", // 指定分支
 	}
 
