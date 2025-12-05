@@ -20,8 +20,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DataService_Upload_FullMethodName   = "/tensorvault.v1.DataService/Upload"
-	DataService_Download_FullMethodName = "/tensorvault.v1.DataService/Download"
+	DataService_CheckFile_FullMethodName = "/tensorvault.v1.DataService/CheckFile"
+	DataService_Upload_FullMethodName    = "/tensorvault.v1.DataService/Upload"
+	DataService_Download_FullMethodName  = "/tensorvault.v1.DataService/Download"
 )
 
 // DataServiceClient is the client API for DataService service.
@@ -30,6 +31,9 @@ const (
 //
 // DataService 负责数据的 IO (对应 Ingester/Exporter)
 type DataServiceClient interface {
+	// [新增] CheckFile: 双阶段上传的第一步 (预检查)
+	// 客户端询问服务端是否已经拥有该文件 (基于全量线性哈希)
+	CheckFile(ctx context.Context, in *CheckFileRequest, opts ...grpc.CallOption) (*CheckFileResponse, error)
 	// Upload: 客户端流式上传 (Client-Side Streaming)
 	// 客户端源源不断发 Chunk，服务器最后返回一个 FileNode 的 Hash
 	Upload(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadRequest, UploadResponse], error)
@@ -44,6 +48,16 @@ type dataServiceClient struct {
 
 func NewDataServiceClient(cc grpc.ClientConnInterface) DataServiceClient {
 	return &dataServiceClient{cc}
+}
+
+func (c *dataServiceClient) CheckFile(ctx context.Context, in *CheckFileRequest, opts ...grpc.CallOption) (*CheckFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckFileResponse)
+	err := c.cc.Invoke(ctx, DataService_CheckFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *dataServiceClient) Upload(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadRequest, UploadResponse], error) {
@@ -84,6 +98,9 @@ type DataService_DownloadClient = grpc.ServerStreamingClient[DownloadResponse]
 //
 // DataService 负责数据的 IO (对应 Ingester/Exporter)
 type DataServiceServer interface {
+	// [新增] CheckFile: 双阶段上传的第一步 (预检查)
+	// 客户端询问服务端是否已经拥有该文件 (基于全量线性哈希)
+	CheckFile(context.Context, *CheckFileRequest) (*CheckFileResponse, error)
 	// Upload: 客户端流式上传 (Client-Side Streaming)
 	// 客户端源源不断发 Chunk，服务器最后返回一个 FileNode 的 Hash
 	Upload(grpc.ClientStreamingServer[UploadRequest, UploadResponse]) error
@@ -100,6 +117,9 @@ type DataServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDataServiceServer struct{}
 
+func (UnimplementedDataServiceServer) CheckFile(context.Context, *CheckFileRequest) (*CheckFileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CheckFile not implemented")
+}
 func (UnimplementedDataServiceServer) Upload(grpc.ClientStreamingServer[UploadRequest, UploadResponse]) error {
 	return status.Error(codes.Unimplemented, "method Upload not implemented")
 }
@@ -127,6 +147,24 @@ func RegisterDataServiceServer(s grpc.ServiceRegistrar, srv DataServiceServer) {
 	s.RegisterService(&DataService_ServiceDesc, srv)
 }
 
+func _DataService_CheckFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataServiceServer).CheckFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataService_CheckFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataServiceServer).CheckFile(ctx, req.(*CheckFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DataService_Upload_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(DataServiceServer).Upload(&grpc.GenericServerStream[UploadRequest, UploadResponse]{ServerStream: stream})
 }
@@ -151,7 +189,12 @@ type DataService_DownloadServer = grpc.ServerStreamingServer[DownloadResponse]
 var DataService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "tensorvault.v1.DataService",
 	HandlerType: (*DataServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CheckFile",
+			Handler:    _DataService_CheckFile_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Upload",

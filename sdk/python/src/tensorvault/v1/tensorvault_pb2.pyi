@@ -7,6 +7,26 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class CheckFileRequest(_message.Message):
+    __slots__ = ()
+    SHA256_FIELD_NUMBER: _ClassVar[int]
+    SIZE_FIELD_NUMBER: _ClassVar[int]
+    sha256: str
+    size: int
+    def __init__(
+        self, sha256: _Optional[str] = ..., size: _Optional[int] = ...
+    ) -> None: ...
+
+class CheckFileResponse(_message.Message):
+    __slots__ = ()
+    EXISTS_FIELD_NUMBER: _ClassVar[int]
+    MERKLE_ROOT_HASH_FIELD_NUMBER: _ClassVar[int]
+    exists: bool
+    merkle_root_hash: str
+    def __init__(
+        self, exists: _Optional[bool] = ..., merkle_root_hash: _Optional[str] = ...
+    ) -> None: ...
+
 class UploadRequest(_message.Message):
     __slots__ = ()
     META_FIELD_NUMBER: _ClassVar[int]
@@ -22,8 +42,12 @@ class UploadRequest(_message.Message):
 class FileMeta(_message.Message):
     __slots__ = ()
     PATH_FIELD_NUMBER: _ClassVar[int]
+    SHA256_FIELD_NUMBER: _ClassVar[int]
     path: str
-    def __init__(self, path: _Optional[str] = ...) -> None: ...
+    sha256: str
+    def __init__(
+        self, path: _Optional[str] = ..., sha256: _Optional[str] = ...
+    ) -> None: ...
 
 class UploadResponse(_message.Message):
     __slots__ = ()

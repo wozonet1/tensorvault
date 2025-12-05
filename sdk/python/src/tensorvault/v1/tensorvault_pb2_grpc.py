@@ -14,6 +14,12 @@ class DataServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.CheckFile = channel.unary_unary(
+            "/tensorvault.v1.DataService/CheckFile",
+            request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileRequest.SerializeToString,
+            response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileResponse.FromString,
+            _registered_method=True,
+        )
         self.Upload = channel.stream_unary(
             "/tensorvault.v1.DataService/Upload",
             request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.UploadRequest.SerializeToString,
@@ -30,6 +36,14 @@ class DataServiceStub(object):
 
 class DataServiceServicer(object):
     """DataService 负责数据的 IO (对应 Ingester/Exporter)"""
+
+    def CheckFile(self, request, context):
+        """[新增] CheckFile: 双阶段上传的第一步 (预检查)
+        客户端询问服务端是否已经拥有该文件 (基于全量线性哈希)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def Upload(self, request_iterator, context):
         """Upload: 客户端流式上传 (Client-Side Streaming)
@@ -50,6 +64,11 @@ class DataServiceServicer(object):
 
 def add_DataServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
+        "CheckFile": grpc.unary_unary_rpc_method_handler(
+            servicer.CheckFile,
+            request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileRequest.FromString,
+            response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileResponse.SerializeToString,
+        ),
         "Upload": grpc.stream_unary_rpc_method_handler(
             servicer.Upload,
             request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.UploadRequest.FromString,
@@ -73,6 +92,36 @@ def add_DataServiceServicer_to_server(servicer, server):
 # This class is part of an EXPERIMENTAL API.
 class DataService(object):
     """DataService 负责数据的 IO (对应 Ingester/Exporter)"""
+
+    @staticmethod
+    def CheckFile(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/tensorvault.v1.DataService/CheckFile",
+            tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileRequest.SerializeToString,
+            tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
 
     @staticmethod
     def Upload(

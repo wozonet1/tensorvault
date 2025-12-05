@@ -9,7 +9,6 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
-from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 _runtime_version.ValidateProtobufRuntimeVersion(
     _runtime_version.Domain.PUBLIC, 6, 33, 1, "", "tensorvault/v1/tensorvault.proto"
@@ -19,8 +18,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
+
+
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n tensorvault/v1/tensorvault.proto\x12\x0etensorvault.v1\x1a\x1b\x62uf/validate/validate.proto"k\n\rUploadRequest\x12.\n\x04meta\x18\x01 \x01(\x0b\x32\x18.tensorvault.v1.FileMetaH\x00R\x04meta\x12\x1f\n\nchunk_data\x18\x02 \x01(\x0cH\x00R\tchunkDataB\t\n\x07payload"\x1e\n\x08\x46ileMeta\x12\x12\n\x04path\x18\x01 \x01(\tR\x04path"M\n\x0eUploadResponse\x12\x1c\n\x04hash\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\x04hash\x12\x1d\n\ntotal_size\x18\x02 \x01(\x03R\ttotalSize"@\n\x0f\x44ownloadRequest\x12-\n\x04hash\x18\x01 \x01(\tB\x19\xbaH\x16r\x14\x10\x04\x18@2\x0e^[a-fA-F0-9]+$R\x04hash"1\n\x10\x44ownloadResponse\x12\x1d\n\nchunk_data\x18\x01 \x01(\x0cR\tchunkData"\x10\n\x0eGetHeadRequest"a\n\x0fGetHeadResponse\x12\x1c\n\x04hash\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\x04hash\x12\x18\n\x07version\x18\x02 \x01(\x03R\x07version\x12\x16\n\x06\x65xists\x18\x03 \x01(\x08R\x06\x65xists"\xc6\x01\n\rCommitRequest\x12!\n\x07message\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07message\x12\x16\n\x06\x61uthor\x18\x02 \x01(\tR\x06\x61uthor\x12%\n\ttree_hash\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\x08treeHash\x12\x32\n\rparent_hashes\x18\x04 \x03(\tB\r\xbaH\n\x92\x01\x07"\x05r\x03\x98\x01@R\x0cparentHashes\x12\x1f\n\x0b\x62ranch_name\x18\x05 \x01(\tR\nbranchName";\n\x0e\x43ommitResponse\x12)\n\x0b\x63ommit_hash\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\ncommitHash2\xa9\x01\n\x0b\x44\x61taService\x12I\n\x06Upload\x12\x1d.tensorvault.v1.UploadRequest\x1a\x1e.tensorvault.v1.UploadResponse(\x01\x12O\n\x08\x44ownload\x12\x1f.tensorvault.v1.DownloadRequest\x1a .tensorvault.v1.DownloadResponse0\x01\x32\xa2\x01\n\x0bMetaService\x12J\n\x07GetHead\x12\x1e.tensorvault.v1.GetHeadRequest\x1a\x1f.tensorvault.v1.GetHeadResponse\x12G\n\x06\x43ommit\x12\x1d.tensorvault.v1.CommitRequest\x1a\x1e.tensorvault.v1.CommitResponseB\x1eZ\x1ctensorvault/pkg/api/tvrpc/v1b\x06proto3'
+    b'\n tensorvault/v1/tensorvault.proto\x12\x0etensorvault.v1\x1a\x1b\x62uf/validate/validate.proto"a\n\x10\x43heckFileRequest\x12\x30\n\x06sha256\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\x06sha256\x12\x1b\n\x04size\x18\x02 \x01(\x03\x42\x07\xbaH\x04"\x02 \x00R\x04size"\x89\x01\n\x11\x43heckFileResponse\x12\x16\n\x06\x65xists\x18\x01 \x01(\x08R\x06\x65xists\x12G\n\x10merkle_root_hash\x18\x02 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@H\x00R\x0emerkleRootHash\x88\x01\x01\x42\x13\n\x11_merkle_root_hash"k\n\rUploadRequest\x12.\n\x04meta\x18\x01 \x01(\x0b\x32\x18.tensorvault.v1.FileMetaH\x00R\x04meta\x12\x1f\n\nchunk_data\x18\x02 \x01(\x0cH\x00R\tchunkDataB\t\n\x07payload"P\n\x08\x46ileMeta\x12\x12\n\x04path\x18\x01 \x01(\tR\x04path\x12\x30\n\x06sha256\x18\x02 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\x06sha256"M\n\x0eUploadResponse\x12\x1c\n\x04hash\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\x04hash\x12\x1d\n\ntotal_size\x18\x02 \x01(\x03R\ttotalSize"@\n\x0f\x44ownloadRequest\x12-\n\x04hash\x18\x01 \x01(\tB\x19\xbaH\x16r\x14\x10\x04\x18@2\x0e^[a-fA-F0-9]+$R\x04hash"1\n\x10\x44ownloadResponse\x12\x1d\n\nchunk_data\x18\x01 \x01(\x0cR\tchunkData"\x10\n\x0eGetHeadRequest"a\n\x0fGetHeadResponse\x12\x1c\n\x04hash\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\x04hash\x12\x18\n\x07version\x18\x02 \x01(\x03R\x07version\x12\x16\n\x06\x65xists\x18\x03 \x01(\x08R\x06\x65xists"\xc6\x01\n\rCommitRequest\x12!\n\x07message\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07message\x12\x16\n\x06\x61uthor\x18\x02 \x01(\tR\x06\x61uthor\x12%\n\ttree_hash\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\x08treeHash\x12\x32\n\rparent_hashes\x18\x04 \x03(\tB\r\xbaH\n\x92\x01\x07"\x05r\x03\x98\x01@R\x0cparentHashes\x12\x1f\n\x0b\x62ranch_name\x18\x05 \x01(\tR\nbranchName";\n\x0e\x43ommitResponse\x12)\n\x0b\x63ommit_hash\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\ncommitHash2\xfb\x01\n\x0b\x44\x61taService\x12P\n\tCheckFile\x12 .tensorvault.v1.CheckFileRequest\x1a!.tensorvault.v1.CheckFileResponse\x12I\n\x06Upload\x12\x1d.tensorvault.v1.UploadRequest\x1a\x1e.tensorvault.v1.UploadResponse(\x01\x12O\n\x08\x44ownload\x12\x1f.tensorvault.v1.DownloadRequest\x1a .tensorvault.v1.DownloadResponse0\x01\x32\xa2\x01\n\x0bMetaService\x12J\n\x07GetHead\x12\x1e.tensorvault.v1.GetHeadRequest\x1a\x1f.tensorvault.v1.GetHeadResponse\x12G\n\x06\x43ommit\x12\x1d.tensorvault.v1.CommitRequest\x1a\x1e.tensorvault.v1.CommitResponseB\x1eZ\x1ctensorvault/pkg/api/tvrpc/v1b\x06proto3'
 )
 
 _globals = globals()
@@ -31,6 +33,24 @@ _builder.BuildTopDescriptorsAndMessages(
 if not _descriptor._USE_C_DESCRIPTORS:
     _globals["DESCRIPTOR"]._loaded_options = None
     _globals["DESCRIPTOR"]._serialized_options = b"Z\034tensorvault/pkg/api/tvrpc/v1"
+    _globals["_CHECKFILEREQUEST"].fields_by_name["sha256"]._loaded_options = None
+    _globals["_CHECKFILEREQUEST"].fields_by_name[
+        "sha256"
+    ]._serialized_options = b"\272H\025r\0232\016^[a-fA-F0-9]+$\230\001@"
+    _globals["_CHECKFILEREQUEST"].fields_by_name["size"]._loaded_options = None
+    _globals["_CHECKFILEREQUEST"].fields_by_name[
+        "size"
+    ]._serialized_options = b'\272H\004"\002 \000'
+    _globals["_CHECKFILERESPONSE"].fields_by_name[
+        "merkle_root_hash"
+    ]._loaded_options = None
+    _globals["_CHECKFILERESPONSE"].fields_by_name[
+        "merkle_root_hash"
+    ]._serialized_options = b"\272H\025r\0232\016^[a-fA-F0-9]+$\230\001@"
+    _globals["_FILEMETA"].fields_by_name["sha256"]._loaded_options = None
+    _globals["_FILEMETA"].fields_by_name[
+        "sha256"
+    ]._serialized_options = b"\272H\025r\0232\016^[a-fA-F0-9]+$\230\001@"
     _globals["_UPLOADRESPONSE"].fields_by_name["hash"]._loaded_options = None
     _globals["_UPLOADRESPONSE"].fields_by_name[
         "hash"
@@ -59,26 +79,30 @@ if not _descriptor._USE_C_DESCRIPTORS:
     _globals["_COMMITRESPONSE"].fields_by_name[
         "commit_hash"
     ]._serialized_options = b"\272H\005r\003\230\001@"
-    _globals["_UPLOADREQUEST"]._serialized_start = 81
-    _globals["_UPLOADREQUEST"]._serialized_end = 188
-    _globals["_FILEMETA"]._serialized_start = 190
-    _globals["_FILEMETA"]._serialized_end = 220
-    _globals["_UPLOADRESPONSE"]._serialized_start = 222
-    _globals["_UPLOADRESPONSE"]._serialized_end = 299
-    _globals["_DOWNLOADREQUEST"]._serialized_start = 301
-    _globals["_DOWNLOADREQUEST"]._serialized_end = 365
-    _globals["_DOWNLOADRESPONSE"]._serialized_start = 367
-    _globals["_DOWNLOADRESPONSE"]._serialized_end = 416
-    _globals["_GETHEADREQUEST"]._serialized_start = 418
-    _globals["_GETHEADREQUEST"]._serialized_end = 434
-    _globals["_GETHEADRESPONSE"]._serialized_start = 436
-    _globals["_GETHEADRESPONSE"]._serialized_end = 533
-    _globals["_COMMITREQUEST"]._serialized_start = 536
-    _globals["_COMMITREQUEST"]._serialized_end = 734
-    _globals["_COMMITRESPONSE"]._serialized_start = 736
-    _globals["_COMMITRESPONSE"]._serialized_end = 795
-    _globals["_DATASERVICE"]._serialized_start = 798
-    _globals["_DATASERVICE"]._serialized_end = 967
-    _globals["_METASERVICE"]._serialized_start = 970
-    _globals["_METASERVICE"]._serialized_end = 1132
+    _globals["_CHECKFILEREQUEST"]._serialized_start = 81
+    _globals["_CHECKFILEREQUEST"]._serialized_end = 178
+    _globals["_CHECKFILERESPONSE"]._serialized_start = 181
+    _globals["_CHECKFILERESPONSE"]._serialized_end = 318
+    _globals["_UPLOADREQUEST"]._serialized_start = 320
+    _globals["_UPLOADREQUEST"]._serialized_end = 427
+    _globals["_FILEMETA"]._serialized_start = 429
+    _globals["_FILEMETA"]._serialized_end = 509
+    _globals["_UPLOADRESPONSE"]._serialized_start = 511
+    _globals["_UPLOADRESPONSE"]._serialized_end = 588
+    _globals["_DOWNLOADREQUEST"]._serialized_start = 590
+    _globals["_DOWNLOADREQUEST"]._serialized_end = 654
+    _globals["_DOWNLOADRESPONSE"]._serialized_start = 656
+    _globals["_DOWNLOADRESPONSE"]._serialized_end = 705
+    _globals["_GETHEADREQUEST"]._serialized_start = 707
+    _globals["_GETHEADREQUEST"]._serialized_end = 723
+    _globals["_GETHEADRESPONSE"]._serialized_start = 725
+    _globals["_GETHEADRESPONSE"]._serialized_end = 822
+    _globals["_COMMITREQUEST"]._serialized_start = 825
+    _globals["_COMMITREQUEST"]._serialized_end = 1023
+    _globals["_COMMITRESPONSE"]._serialized_start = 1025
+    _globals["_COMMITRESPONSE"]._serialized_end = 1084
+    _globals["_DATASERVICE"]._serialized_start = 1087
+    _globals["_DATASERVICE"]._serialized_end = 1338
+    _globals["_METASERVICE"]._serialized_start = 1341
+    _globals["_METASERVICE"]._serialized_end = 1503
 # @@protoc_insertion_point(module_scope)

@@ -6,6 +6,10 @@ option go_package = "tensorvault/pkg/api/tvrpc/v1";
 import "buf/validate/validate.proto";
 // DataService 负责数据的 IO (对应 Ingester/Exporter)
 service DataService {
+  // [新增] CheckFile: 双阶段上传的第一步 (预检查)
+  // 客户端询问服务端是否已经拥有该文件 (基于全量线性哈希)
+  rpc CheckFile(CheckFileRequest) returns (CheckFileResponse);
+
   // Upload: 客户端流式上传 (Client-Side Streaming)
   // 客户端源源不断发 Chunk，服务器最后返回一个 FileNode 的 Hash
   rpc Upload(stream UploadRequest) returns (UploadResponse);
@@ -19,12 +23,36 @@ service DataService {
 service MetaService {
   // 获取当前的 HEAD 指向
   rpc GetHead(GetHeadRequest) returns (GetHeadResponse);
-  
+
   // 提交一个新的版本
   rpc Commit(CommitRequest) returns (CommitResponse);
 }
 
 // --- 消息定义 ---
+// [新增] 检查文件请求
+message CheckFileRequest {
+  // 文件的全量线性 SHA-256 哈希 (用于查找秒传索引)
+  string sha256 = 1 [
+    (buf.validate.field).string.len = 64,
+    (buf.validate.field).string.pattern = "^[a-fA-F0-9]+$"
+  ];
+
+  // 文件大小 (字节)，用于辅助校验
+  int64 size = 2 [(buf.validate.field).int64.gt = 0];
+}
+
+// [新增] 检查文件响应
+message CheckFileResponse {
+  // 是否已存在 (如果为 true，客户端可以跳过上传)
+  bool exists = 1;
+
+  // 如果存在，直接返回对应的 Merkle Root Hash (FileNode ID)
+  // 只有当 exists=true 时，此字段才有值
+  optional string merkle_root_hash = 2 [
+    (buf.validate.field).string.len = 64,
+    (buf.validate.field).string.pattern = "^[a-fA-F0-9]+$"
+  ];
+}
 
 message UploadRequest {
   // oneof 是一种联合类型，意味着一次请求要么传元数据，要么传二进制
@@ -36,6 +64,12 @@ message UploadRequest {
 
 message FileMeta {
   string path = 1;
+  // [新增] 客户端计算好的线性 SHA-256 哈希
+  // 服务端必须在接收流的过程中重新计算，并在最后进行比对校验
+  string sha256 = 2 [
+    (buf.validate.field).string.len = 64,
+    (buf.validate.field).string.pattern = "^[a-fA-F0-9]+$"
+  ];
 }
 
 message UploadResponse {
@@ -45,7 +79,7 @@ message UploadResponse {
 
 message DownloadRequest {
   string hash = 1 [
-    (buf.validate.field).string.min_len = 4, 
+    (buf.validate.field).string.min_len = 4,
     (buf.validate.field).string.max_len = 64,
     (buf.validate.field).string.pattern = "^[a-fA-F0-9]+$"
   ];  // 要下载的文件/对象的 Hash
@@ -75,11 +109,11 @@ message CommitRequest {
   // 3. [新增] 历史关系 (History)
   // 明确指出这个 Commit 的父节点是谁。
   // 通常是客户端读取到的当前 HEAD。如果不传，服务端可能默认基于当前 HEAD（但会有并发风险）。
-  repeated string parent_hashes = 4[(buf.validate.field).repeated.items.string.len = 64]; 
+  repeated string parent_hashes = 4[(buf.validate.field).repeated.items.string.len = 64];
 
   // 4. [新增] 引用目标 (Reference)
   // 你要更新哪个分支？默认可能是 "HEAD" 或 "refs/heads/main"
-  string branch_name = 5; 
+  string branch_name = 5;
 }
 
 message CommitResponse {
