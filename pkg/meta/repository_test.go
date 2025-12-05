@@ -23,7 +23,7 @@ func setupTestRepo(t *testing.T) *Repository {
 	require.NoError(t, err)
 
 	metaDB := NewWithConn(db)
-	require.NoError(t, metaDB.AutoMigrate(&Ref{}, &CommitModel{}))
+	require.NoError(t, metaDB.AutoMigrate(&Ref{}, &CommitModel{}, &FileIndex{}))
 
 	return NewRepository(metaDB)
 }
@@ -148,4 +148,39 @@ func TestRepository_Ref_ConcurrentCreate(t *testing.T) {
 
 	// 3. 断言：应该返回统一的 CAS 错误 (得益于我们在 UpdateRef 里的兼容性修复)
 	assert.ErrorIs(t, err, ErrConcurrentUpdate, "Concurrent creation should return CAS error")
+}
+
+func TestRepository_FileIndex_Flow(t *testing.T) {
+	repo := setupTestRepo(t)
+	ctx := context.Background()
+
+	linearHash := mockHash("full_content_sha256")
+	merkleRoot := mockHash("dag_root")
+	size := int64(1024)
+
+	// 1. Cache Miss
+	got, err := repo.GetFileIndex(ctx, linearHash)
+	require.NoError(t, err)
+	assert.Nil(t, got, "Should return nil on cache miss")
+
+	// 2. Save (First time)
+	err = repo.SaveFileIndex(ctx, linearHash, merkleRoot, size)
+	require.NoError(t, err)
+
+	// 3. Cache Hit
+	got, err = repo.GetFileIndex(ctx, linearHash)
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, merkleRoot, got.MerkleRoot)
+	assert.Equal(t, size, got.SizeBytes)
+
+	// 4. Save (Duplicate/Idempotency)
+	// 尝试写入一个不同的 root (模拟并发冲突或恶意覆写)，应该被忽略
+	otherRoot := mockHash("other_root")
+	err = repo.SaveFileIndex(ctx, linearHash, otherRoot, size)
+	require.NoError(t, err)
+
+	// 验证数据未被修改 (First write wins)
+	got, _ = repo.GetFileIndex(ctx, linearHash)
+	assert.Equal(t, merkleRoot, got.MerkleRoot, "Existing index should be immutable")
 }

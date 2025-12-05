@@ -169,3 +169,44 @@ func (r *Repository) FindCommitsByAuthor(ctx context.Context, author string, lim
 		Find(&commits).Error
 	return commits, err
 }
+
+// GetFileIndex 根据线性哈希查找 Merkle Root
+// 如果找不到，返回 (nil, nil) 而不是错误，因为这在业务上是正常的 Cache Miss
+func (r *Repository) GetFileIndex(ctx context.Context, linearHash types.Hash) (*FileIndex, error) {
+	var idx FileIndex
+	err := r.db.GetConn().WithContext(ctx).
+		Where("linear_hash = ?", linearHash).
+		First(&idx).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil // Cache Miss
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query file index: %w", err)
+	}
+	return &idx, nil
+}
+
+// SaveFileIndex 保存映射关系
+// 采用 "Insert if not exists" (ON CONFLICT DO NOTHING) 策略
+func (r *Repository) SaveFileIndex(ctx context.Context, linearHash, merkleRoot types.Hash, size int64) error {
+	idx := FileIndex{
+		LinearHash: linearHash,
+		MerkleRoot: merkleRoot,
+		SizeBytes:  size,
+		CreatedAt:  time.Now(),
+	}
+
+	// 幂等写入：如果 LinearHash 已存在，说明别的请求已经建立索引了，直接忽略
+	err := r.db.GetConn().WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "linear_hash"}},
+			DoNothing: true,
+		}).
+		Create(&idx).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to save file index: %w", err)
+	}
+	return nil
+}

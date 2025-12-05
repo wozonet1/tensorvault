@@ -58,7 +58,7 @@ func NewDB(ctx context.Context, cfg Config) (*DB, error) {
 	}
 
 	// 自动迁移表结构
-	err = db.AutoMigrate(&Ref{}, &CommitModel{})
+	err = db.AutoMigrate(&Ref{}, &CommitModel{}, &FileIndex{})
 	if err != nil {
 		return nil, fmt.Errorf("auto migration failed: %w", err)
 	}

@@ -57,3 +57,23 @@ type CommitModel struct {
 func (CommitModel) TableName() string {
 	return "commits"
 }
+
+// 它记录了 LinearHash (SHA-256) -> MerkleRoot (FileNode Hash) 的映射
+// 使得客户端可以通过校验全量哈希来实现“秒传”
+type FileIndex struct {
+	// LinearHash: 文件的全量线性 SHA-256 (客户端计算，服务端校验)
+	LinearHash types.Hash `gorm:"primaryKey;type:char(64)"`
+
+	// MerkleRoot: 对应的 Merkle DAG 根节点哈希 (FileNode ID)
+	MerkleRoot types.Hash `gorm:"type:char(64);not null;index"`
+
+	// SizeBytes: 文件大小，用于哈希碰撞时的二次校验 (Sanity Check)
+	SizeBytes int64 `gorm:"not null"`
+
+	CreatedAt time.Time
+}
+
+// TableName 强制指定表名
+func (FileIndex) TableName() string {
+	return "file_indices"
+}
