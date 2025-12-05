@@ -45,7 +45,7 @@ func setupTestApp(t *testing.T) *app.App {
 	require.NoError(t, err)
 
 	metaDB := meta.NewWithConn(db)
-	require.NoError(t, metaDB.AutoMigrate(&meta.Ref{}, &meta.CommitModel{}))
+	require.NoError(t, metaDB.AutoMigrate(&meta.Ref{}, &meta.CommitModel{}, &meta.FileIndex{}))
 
 	repo := meta.NewRepository(metaDB)
 	refMgr := refs.NewManager(repo)

@@ -181,6 +181,7 @@ func TestRepository_FileIndex_Flow(t *testing.T) {
 	require.NoError(t, err)
 
 	// 验证数据未被修改 (First write wins)
-	got, _ = repo.GetFileIndex(ctx, linearHash)
+	got, err = repo.GetFileIndex(ctx, linearHash)
+	require.NoError(t, err)
 	assert.Equal(t, merkleRoot, got.MerkleRoot, "Existing index should be immutable")
 }

@@ -3,6 +3,8 @@ package service
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"testing"
 
@@ -89,13 +91,18 @@ func TestDataService_Upload_HappyPath(t *testing.T) {
 
 	// 1. 构造请求序列
 	// Frame 1: Meta
-	req1 := &tvrpc.UploadRequest{
-		Payload: &tvrpc.UploadRequest_Meta{
-			Meta: &tvrpc.FileMeta{Path: "test.txt"},
-		},
-	}
 	// Frame 2: Data Chunk
 	data := []byte("hello grpc world")
+	hashBytes := sha256.Sum256(data)
+	linearHash := hex.EncodeToString(hashBytes[:])
+	req1 := &tvrpc.UploadRequest{
+		Payload: &tvrpc.UploadRequest_Meta{
+			Meta: &tvrpc.FileMeta{
+				Path:   "test.txt",
+				Sha256: linearHash, // [关键]
+			},
+		},
+	}
 	req2 := &tvrpc.UploadRequest{
 		Payload: &tvrpc.UploadRequest_ChunkData{
 			ChunkData: data,
@@ -120,6 +127,11 @@ func TestDataService_Upload_HappyPath(t *testing.T) {
 	exists, err := app.Store.Has(context.Background(), types.Hash(stream.Response.Hash))
 	require.NoError(t, err)
 	assert.True(t, exists, "FileNode should be in store")
+
+	idx, err := app.Repository.GetFileIndex(context.Background(), types.Hash(linearHash))
+	require.NoError(t, err)
+	require.NotNil(t, idx, "Index should be created after successful upload")
+	assert.Equal(t, stream.Response.Hash, idx.MerkleRoot.String())
 }
 
 func TestDataService_Upload_ProtocolViolation(t *testing.T) {
@@ -135,6 +147,56 @@ func TestDataService_Upload_ProtocolViolation(t *testing.T) {
 	require.Error(t, err)
 	st, _ := status.FromError(err)
 	assert.Equal(t, codes.InvalidArgument, st.Code(), "Should reject data as first frame")
+}
+
+func TestDataService_Upload_IntegrityFail(t *testing.T) {
+	svc, app := setupTestDataService(t)
+	ctx := context.Background()
+
+	// 1. 准备数据
+	data := []byte("hello corrupted world")
+
+	// 2. 故意构造一个【错误】的哈希
+	// 真实哈希应该是 sha256("hello corrupted world")
+	// 但我们传一个全 0 的假哈希
+	fakeHash := "000000000000000000000000000000000000000000000000000000000000dead"
+
+	// Frame 1: Meta (带错误的 Hash)
+	req1 := &tvrpc.UploadRequest{
+		Payload: &tvrpc.UploadRequest_Meta{
+			Meta: &tvrpc.FileMeta{
+				Path:   "test.txt",
+				Sha256: fakeHash,
+			},
+		},
+	}
+	// Frame 2: Data
+	req2 := &tvrpc.UploadRequest{
+		Payload: &tvrpc.UploadRequest_ChunkData{
+			ChunkData: data,
+		},
+	}
+
+	stream := &MockUploadStream{
+		Requests: []*tvrpc.UploadRequest{req1, req2},
+	}
+
+	// 3. 执行上传
+	err := svc.Upload(stream)
+
+	// 4. 验证结果：必须报错
+	require.Error(t, err)
+
+	// 5. 验证错误码：必须是 DataLoss
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.DataLoss, st.Code(), "Should return DataLoss when integrity check fails")
+	assert.Contains(t, st.Message(), "integrity check failed")
+
+	// 6. 验证副作用：索引表里不应该有这个假哈希的记录
+	idx, err := app.Repository.GetFileIndex(ctx, types.Hash(fakeHash))
+	require.NoError(t, err)
+	assert.Nil(t, idx, "Index should NOT be created for corrupted upload")
 }
 
 func TestDataService_Download_HappyPath(t *testing.T) {

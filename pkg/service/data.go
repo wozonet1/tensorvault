@@ -1,6 +1,9 @@
 package service
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -28,14 +31,80 @@ func NewDataService(application *app.App) *DataService {
 }
 
 // =============================================================================
-// 1. Upload (Client-Side Streaming)
+// 0. Pre-check (Optimistic Deduplication)
+// =============================================================================
+
+// CheckFile 实现了“双阶段上传”的第一阶段
+// 客户端提供文件的 LinearHash 和 Size，服务端检查是否已有对应索引
+func (s *DataService) CheckFile(ctx context.Context, req *tvrpc.CheckFileRequest) (*tvrpc.CheckFileResponse, error) {
+	// 1. 参数转换与校验
+	linearHash := types.Hash(req.Sha256)
+	if !linearHash.IsValid() {
+		// 尽管 Proto 有 validate，这里是最后一道防线
+		return nil, status.Error(codes.InvalidArgument, "invalid sha256 format")
+	}
+
+	// 2. 查询元数据索引
+	// s.app.Repository 是我们在 Step 2 中增强过的
+	idx, err := s.app.Repository.GetFileIndex(ctx, linearHash)
+	if err != nil {
+		// 数据库查询出错 (Connection Refused 等) -> 返回 Internal Error
+		return nil, status.Errorf(codes.Internal, "failed to query file index: %v", err)
+	}
+
+	// 3. Cache Miss (数据库里没查到)
+	if idx == nil {
+		return &tvrpc.CheckFileResponse{
+			Exists: false,
+		}, nil
+	}
+
+	// 4. 安全兜底：哈希碰撞检测
+	// 如果 Hash 一样但 Size 不一样，说明发生碰撞（或者数据库脏数据）
+	// 这种情况下我们不敢复用，强制客户端重新上传
+	if idx.SizeBytes != req.Size {
+		fmt.Printf("⚠️ Hash Collision or Corruption detected! Hash: %s, DB Size: %d, Req Size: %d\n",
+			linearHash, idx.SizeBytes, req.Size)
+		return &tvrpc.CheckFileResponse{
+			Exists: false, // 欺骗客户端说不存在，强制重传
+		}, nil
+	}
+
+	// 5. 再次确认底层对象存在 (Double Check)
+	// 虽然索引表里有记录，但万一 S3 里的对象被误删了呢？
+	// 我们做一个快速的 Has 检查，确保万无一失。
+	exists, err := s.app.Store.Has(ctx, idx.MerkleRoot)
+	if err != nil {
+		// S3 报错，安全起见让客户端重传
+		return nil, status.Errorf(codes.Internal, "storage check failed: %v", err)
+	}
+	if !exists {
+		fmt.Printf("⚠️ Data Integrity Alert: Index exists for %s but FileNode %s is missing in store.\n",
+			linearHash, idx.MerkleRoot)
+		// 索引悬空，需要重传
+		return &tvrpc.CheckFileResponse{Exists: false}, nil
+	}
+
+	// 6. Cache Hit (秒传成功)
+	fmt.Printf("⚡ [CheckFile] Instant upload for %s (Hash: %s)\n", linearHash[:8], idx.MerkleRoot[:8])
+
+	// 这里需要处理 optional 字段的赋值
+	// proto3 optional 对应 Go 的指针类型 *string
+	rootHashStr := idx.MerkleRoot.String()
+	return &tvrpc.CheckFileResponse{
+		Exists:         true,
+		MerkleRootHash: &rootHashStr,
+	}, nil
+}
+
+// =============================================================================
+// 1. Upload (Client-Side Streaming) with Integrity Check & Indexing
 // =============================================================================
 
 // Upload 接收客户端的流式上传
-// 协议约定：第一帧必须是 Meta，后续帧是 ChunkData
+// 协议约定：第一帧必须是 Meta (含 sha256)，后续帧是 ChunkData
 func (s *DataService) Upload(stream grpc.ClientStreamingServer[tvrpc.UploadRequest, tvrpc.UploadResponse]) error {
 	// --- Step 1: 握手阶段 (Handshake) ---
-	// 我们必须手动读取第一条消息，以确保它包含元数据
 	firstReq, err := stream.Recv()
 	if err == io.EOF {
 		return status.Error(codes.InvalidArgument, "empty stream: expected metadata frame")
@@ -44,35 +113,68 @@ func (s *DataService) Upload(stream grpc.ClientStreamingServer[tvrpc.UploadReque
 		return status.Errorf(codes.Internal, "failed to receive metadata: %v", err)
 	}
 
-	// 验证第一帧是否为 Meta
-	// 这里用到了生成代码里的 GetMeta()，它会自动检查 Payload 类型
 	meta := firstReq.GetMeta()
 	if meta == nil {
 		return status.Error(codes.InvalidArgument, "protocol violation: first frame must be FileMeta")
 	}
 
-	// (可选) 这里可以记录日志，比如 "Receiving file: meta.Path"
-	fmt.Printf("🚀 [Upload] Receiving: %s\n", meta.Path)
+	// 校验 Meta 中的 Linear Hash 是否合法
+	clientLinearHash := types.Hash(meta.Sha256)
+	if !clientLinearHash.IsValid() {
+		return status.Errorf(codes.InvalidArgument, "invalid sha256 in metadata: %s", meta.Sha256)
+	}
+
+	fmt.Printf("🚀 [Upload] Receiving: %s (Claimed Hash: %s...)\n", meta.Path, clientLinearHash[:8])
 
 	// --- Step 2: 组装阶段 (Wiring) ---
-	// 使用我们写的适配器，把剩余的 gRPC 流伪装成 io.Reader
-	// 注意：stream 已经被读取了一次，后续 Recv 会自动读下一帧
+	// 1. gRPC Stream -> io.Reader
 	streamReader := NewGrpcStreamReader(stream)
 
-	// 创建 Ingester
-	// 注意：复用 app.Store，这使得所有上传自动享受 Redis 缓存和 S3 存储能力
+	// 2. 准备 SHA-256 Hasher (用于服务端端计算全量哈希)
+	hasher := sha256.New()
+
+	// 3. 组装 TeeReader: 读 streamReader 的同时，自动写入 hasher
+	teeReader := io.TeeReader(streamReader, hasher)
+
+	// 4. 创建 Ingester
 	ing := ingester.NewIngester(s.app.Store)
 
 	// --- Step 3: 执行阶段 (Execution) ---
-	// 调用核心逻辑。Ingester 会不断从 streamReader 读取，直到 io.EOF
-	ctx := stream.Context() // 获取上下文以处理取消
-	fileNode, err := ing.IngestFile(ctx, streamReader)
+	// Ingester 读取 teeReader -> 触发 Hasher 计算 -> 触发 CDC 切分 -> 上传 S3
+	ctx := stream.Context()
+	fileNode, err := ing.IngestFile(ctx, teeReader)
 	if err != nil {
 		return status.Errorf(codes.Internal, "ingestion failed: %v", err)
 	}
 
-	// --- Step 4: 响应阶段 (Response) ---
-	// 发送唯一的响应包并关闭流
+	// --- Step 4: 完整性校验 (Integrity Check) ---
+	// 此时流已读完，Hasher 中已经有了全量数据的指纹
+	serverLinearHashStr := hex.EncodeToString(hasher.Sum(nil))
+	serverLinearHash := types.Hash(serverLinearHashStr)
+
+	if serverLinearHash != clientLinearHash {
+		// 这是一个严重错误：数据在传输过程中损坏，或者客户端撒谎了
+		// 即使 S3 已经存了数据，我们也不能认领它（它是脏数据）
+		fmt.Printf("❌ [Upload] Integrity Check Failed!\nClaimed: %s\nActual : %s\n", clientLinearHash, serverLinearHash)
+		return status.Errorf(codes.DataLoss, "integrity check failed: data corruption detected")
+	}
+
+	// --- Step 5: 建立索引 (Indexing) ---
+	// 校验通过，说明 S3 里的数据是完好且正确的。
+	// 现在我们将 LinearHash -> MerkleRoot 的关系写入数据库，供下次 CheckFile 使用。
+	err = s.app.Repository.SaveFileIndex(ctx, serverLinearHash, fileNode.ID(), fileNode.TotalSize)
+	if err != nil {
+		// 索引写入失败不应影响上传成功的判定（属于非关键路径失败）
+		// 但为了系统健康，我们需要记录日志
+		fmt.Printf("⚠️ [Upload] Failed to save file index: %v\n", err)
+		// 选择：是报错还是忽略？
+		// 架构决策：忽略错误。文件已经安全存入 S3 并返回了 Hash，用户可以继续工作。
+		// 只是下次没法“秒传”而已。这是“可用性优先”。
+	} else {
+		fmt.Printf("✅ [Upload] Index saved. Linear: %s -> Merkle: %s\n", serverLinearHash[:8], fileNode.ID()[:8])
+	}
+
+	// --- Step 6: 响应阶段 (Response) ---
 	return stream.SendAndClose(&tvrpc.UploadResponse{
 		Hash:      fileNode.ID().String(),
 		TotalSize: fileNode.TotalSize,
