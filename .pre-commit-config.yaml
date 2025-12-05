@@ -29,8 +29,39 @@ repos:
         types: [proto]
       # - id: buf-breaking # 可选：检查是否破坏了兼容性
 
-  # 4. Python 代码检查 (为 HelixPipe 准备)
+  # 4. Python 代码格式化 (Black)
   - repo: https://github.com/psf/black
-    rev: 23.12.1
+    rev: 24.2.0 # 使用较新版本
     hooks:
       - id: black
+        name: python black
+        # [关键] 只检查 sdk/python 目录
+        files: ^sdk/python/
+        # [关键] 排除生成的文件
+        exclude: ^sdk/python/src/tensorvault/v1/.*_pb2.*
+
+  # 5. Python Lint & Import Sort (Ruff - 替代 isort/flake8)
+  # Ruff 是目前 Python 社区也是 AI Infra 领域的标准
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.0
+    hooks:
+      - id: ruff
+        name: python ruff
+        args:
+          [--fix, --exit-non-zero-on-fix, --config=./sdk/python/pyproject.toml]
+        files: ^sdk/python/
+        exclude: ^sdk/python/src/tensorvault/v1/.*_pb2.*
+
+  # 6. Python 类型检查 (MyPy)
+  # 注意：这要求开发者本地安装了相关依赖，或者 pre-commit 会尝试创建一个虚环境
+  # 如果这步太慢或报错，可以注释掉，留给 CI
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        name: python mypy
+        files: ^sdk/python/
+        exclude: ^sdk/python/src/(tensorvault/v1/.*_pb2.*|buf/)
+        # 告诉 mypy 忽略缺失的导入 (因为 pre-commit 环境可能没有 pandas/grpc)
+        args: ["--ignore-missing-imports", "--explicit-package-bases"]
+        additional_dependencies: [types-protobuf, grpcio-tools] # 尽量给它加上核心依赖

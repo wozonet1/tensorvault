@@ -48,3 +48,39 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = "buf.*"
 ignore_errors = true
+
+
+# --- 忽略所有第三方库 ---
+[[tool.mypy.overrides]]
+module = [
+    "pandas.*", "numpy.*", "torch.*", "torch_geometric.*", "omegaconf.*",
+    "hydra.*", "rdkit.*", "tqdm.*", "sklearn.*", "research_template.*", "joblib.*","faiss.*"
+]
+ignore_missing_imports = true
+# sdk/python/pyproject.toml
+
+[tool.ruff]
+# 1. 基础配置
+line-length = 88
+target-version = "py39"
+
+# 2. 排除生成的文件 (非常重要，否则会删掉 _pb2.py 里看似没用的导入)
+exclude = [
+    "**/tensorvault/v1/*_pb2.py",
+    "**/tensorvault/v1/*_pb2.pyi",
+    "**/tensorvault/v1/*_pb2_grpc.py",
+]
+
+[tool.ruff.lint]
+# 3. 启用规则
+# E, W: pycodestyle (标准错误/警告)
+# F: Pyflakes (关键！F401 就是检测未使用的导入)
+# I: Isort (关键！负责导入排序)
+select = ["E", "W", "F", "I"]
+
+# 4. 忽略规则 (可选)
+ignore = ["E501",]
+
+[tool.ruff.lint.isort]
+# 5. Isort 配置：确保本地包和第三方包分开
+known-first-party = ["tensorvault"]

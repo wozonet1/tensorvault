@@ -6,7 +6,8 @@ from tensorvault.v1 import tensorvault_pb2 as tensorvault_dot_v1_dot_tensorvault
 
 
 class DataServiceStub(object):
-    """DataService 负责数据的 IO (对应 Ingester/Exporter)"""
+    """DataService 负责数据的 IO (对应 Ingester/Exporter)
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -15,101 +16,95 @@ class DataServiceStub(object):
             channel: A grpc.Channel.
         """
         self.CheckFile = channel.unary_unary(
-            "/tensorvault.v1.DataService/CheckFile",
-            request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileRequest.SerializeToString,
-            response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileResponse.FromString,
-            _registered_method=True,
-        )
+                '/tensorvault.v1.DataService/CheckFile',
+                request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileRequest.SerializeToString,
+                response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileResponse.FromString,
+                _registered_method=True)
         self.Upload = channel.stream_unary(
-            "/tensorvault.v1.DataService/Upload",
-            request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.UploadRequest.SerializeToString,
-            response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.UploadResponse.FromString,
-            _registered_method=True,
-        )
+                '/tensorvault.v1.DataService/Upload',
+                request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.UploadRequest.SerializeToString,
+                response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.UploadResponse.FromString,
+                _registered_method=True)
         self.Download = channel.unary_stream(
-            "/tensorvault.v1.DataService/Download",
-            request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.DownloadRequest.SerializeToString,
-            response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.DownloadResponse.FromString,
-            _registered_method=True,
-        )
+                '/tensorvault.v1.DataService/Download',
+                request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.DownloadRequest.SerializeToString,
+                response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.DownloadResponse.FromString,
+                _registered_method=True)
 
 
 class DataServiceServicer(object):
-    """DataService 负责数据的 IO (对应 Ingester/Exporter)"""
+    """DataService 负责数据的 IO (对应 Ingester/Exporter)
+    """
 
     def CheckFile(self, request, context):
         """[新增] CheckFile: 双阶段上传的第一步 (预检查)
         客户端询问服务端是否已经拥有该文件 (基于全量线性哈希)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def Upload(self, request_iterator, context):
         """Upload: 客户端流式上传 (Client-Side Streaming)
         客户端源源不断发 Chunk，服务器最后返回一个 FileNode 的 Hash
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def Download(self, request, context):
         """Download: 服务器流式响应 (Server-Side Streaming)
         客户端发一个 Hash，服务器源源不断吐出二进制流
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
 
 def add_DataServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-        "CheckFile": grpc.unary_unary_rpc_method_handler(
-            servicer.CheckFile,
-            request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileRequest.FromString,
-            response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileResponse.SerializeToString,
-        ),
-        "Upload": grpc.stream_unary_rpc_method_handler(
-            servicer.Upload,
-            request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.UploadRequest.FromString,
-            response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.UploadResponse.SerializeToString,
-        ),
-        "Download": grpc.unary_stream_rpc_method_handler(
-            servicer.Download,
-            request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.DownloadRequest.FromString,
-            response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.DownloadResponse.SerializeToString,
-        ),
+            'CheckFile': grpc.unary_unary_rpc_method_handler(
+                    servicer.CheckFile,
+                    request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileRequest.FromString,
+                    response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileResponse.SerializeToString,
+            ),
+            'Upload': grpc.stream_unary_rpc_method_handler(
+                    servicer.Upload,
+                    request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.UploadRequest.FromString,
+                    response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.UploadResponse.SerializeToString,
+            ),
+            'Download': grpc.unary_stream_rpc_method_handler(
+                    servicer.Download,
+                    request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.DownloadRequest.FromString,
+                    response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.DownloadResponse.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "tensorvault.v1.DataService", rpc_method_handlers
-    )
+            'tensorvault.v1.DataService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers(
-        "tensorvault.v1.DataService", rpc_method_handlers
-    )
+    server.add_registered_method_handlers('tensorvault.v1.DataService', rpc_method_handlers)
 
 
-# This class is part of an EXPERIMENTAL API.
+ # This class is part of an EXPERIMENTAL API.
 class DataService(object):
-    """DataService 负责数据的 IO (对应 Ingester/Exporter)"""
+    """DataService 负责数据的 IO (对应 Ingester/Exporter)
+    """
 
     @staticmethod
-    def CheckFile(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def CheckFile(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/tensorvault.v1.DataService/CheckFile",
+            '/tensorvault.v1.DataService/CheckFile',
             tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileRequest.SerializeToString,
             tensorvault_dot_v1_dot_tensorvault__pb2.CheckFileResponse.FromString,
             options,
@@ -120,26 +115,23 @@ class DataService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def Upload(
-        request_iterator,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def Upload(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.stream_unary(
             request_iterator,
             target,
-            "/tensorvault.v1.DataService/Upload",
+            '/tensorvault.v1.DataService/Upload',
             tensorvault_dot_v1_dot_tensorvault__pb2.UploadRequest.SerializeToString,
             tensorvault_dot_v1_dot_tensorvault__pb2.UploadResponse.FromString,
             options,
@@ -150,26 +142,23 @@ class DataService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def Download(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def Download(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_stream(
             request,
             target,
-            "/tensorvault.v1.DataService/Download",
+            '/tensorvault.v1.DataService/Download',
             tensorvault_dot_v1_dot_tensorvault__pb2.DownloadRequest.SerializeToString,
             tensorvault_dot_v1_dot_tensorvault__pb2.DownloadResponse.FromString,
             options,
@@ -180,12 +169,12 @@ class DataService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
 
 class MetaServiceStub(object):
-    """MetaService 负责元数据管理 (对应 Meta/Refs)"""
+    """MetaService 负责元数据管理 (对应 Meta/Refs)
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -194,78 +183,75 @@ class MetaServiceStub(object):
             channel: A grpc.Channel.
         """
         self.GetHead = channel.unary_unary(
-            "/tensorvault.v1.MetaService/GetHead",
-            request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadRequest.SerializeToString,
-            response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadResponse.FromString,
-            _registered_method=True,
-        )
+                '/tensorvault.v1.MetaService/GetHead',
+                request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadRequest.SerializeToString,
+                response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadResponse.FromString,
+                _registered_method=True)
         self.Commit = channel.unary_unary(
-            "/tensorvault.v1.MetaService/Commit",
-            request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitRequest.SerializeToString,
-            response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitResponse.FromString,
-            _registered_method=True,
-        )
+                '/tensorvault.v1.MetaService/Commit',
+                request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitRequest.SerializeToString,
+                response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitResponse.FromString,
+                _registered_method=True)
 
 
 class MetaServiceServicer(object):
-    """MetaService 负责元数据管理 (对应 Meta/Refs)"""
+    """MetaService 负责元数据管理 (对应 Meta/Refs)
+    """
 
     def GetHead(self, request, context):
-        """获取当前的 HEAD 指向"""
+        """获取当前的 HEAD 指向
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def Commit(self, request, context):
-        """提交一个新的版本"""
+        """提交一个新的版本
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
 
 def add_MetaServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-        "GetHead": grpc.unary_unary_rpc_method_handler(
-            servicer.GetHead,
-            request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadRequest.FromString,
-            response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadResponse.SerializeToString,
-        ),
-        "Commit": grpc.unary_unary_rpc_method_handler(
-            servicer.Commit,
-            request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitRequest.FromString,
-            response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitResponse.SerializeToString,
-        ),
+            'GetHead': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetHead,
+                    request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadRequest.FromString,
+                    response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadResponse.SerializeToString,
+            ),
+            'Commit': grpc.unary_unary_rpc_method_handler(
+                    servicer.Commit,
+                    request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitRequest.FromString,
+                    response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitResponse.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "tensorvault.v1.MetaService", rpc_method_handlers
-    )
+            'tensorvault.v1.MetaService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers(
-        "tensorvault.v1.MetaService", rpc_method_handlers
-    )
+    server.add_registered_method_handlers('tensorvault.v1.MetaService', rpc_method_handlers)
 
 
-# This class is part of an EXPERIMENTAL API.
+ # This class is part of an EXPERIMENTAL API.
 class MetaService(object):
-    """MetaService 负责元数据管理 (对应 Meta/Refs)"""
+    """MetaService 负责元数据管理 (对应 Meta/Refs)
+    """
 
     @staticmethod
-    def GetHead(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetHead(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/tensorvault.v1.MetaService/GetHead",
+            '/tensorvault.v1.MetaService/GetHead',
             tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadRequest.SerializeToString,
             tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadResponse.FromString,
             options,
@@ -276,26 +262,23 @@ class MetaService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def Commit(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def Commit(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/tensorvault.v1.MetaService/Commit",
+            '/tensorvault.v1.MetaService/Commit',
             tensorvault_dot_v1_dot_tensorvault__pb2.CommitRequest.SerializeToString,
             tensorvault_dot_v1_dot_tensorvault__pb2.CommitResponse.FromString,
             options,
@@ -306,5 +289,4 @@ class MetaService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)

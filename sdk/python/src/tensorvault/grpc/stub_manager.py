@@ -1,5 +1,7 @@
-import grpc
 from typing import Optional
+
+import grpc
+
 from tensorvault.v1 import tensorvault_pb2_grpc
 
 

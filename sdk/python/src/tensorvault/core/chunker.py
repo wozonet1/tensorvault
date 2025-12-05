@@ -1,6 +1,5 @@
 from typing import BinaryIO, Generator
 
-
 # 64KB 是 gRPC 和 HTTP/2 协议推荐的 Payload Frame 大小
 # 过大可能导致 Head-of-Line Blocking，过小会导致帧头开销过大
 DEFAULT_CHUNK_SIZE = 64 * 1024
