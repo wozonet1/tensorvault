@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"tensorvault/pkg/app"
+	"tensorvault/pkg/client"
 	"tensorvault/pkg/config"
 
 	"github.com/spf13/cobra"
@@ -11,9 +12,9 @@ import (
 )
 
 var (
-	cfgFile string
-	// 全局应用实例，供子命令使用
-	TV *app.App
+	cfgFile     string
+	TV          *app.App
+	remoteStore *client.TVClient //全局单例,在PersistentPostRunE里被关闭
 )
 
 var rootCmd = &cobra.Command{
@@ -52,10 +53,24 @@ func init() {
 	// 2. 定义 storage.path 参数，并绑定到 Viper
 	// 这样用户既可以在 yaml 里写，也可以用 --storage-path 覆盖
 	rootCmd.PersistentFlags().String("storage-path", "", "Directory to store objects")
+	rootCmd.PersistentFlags().String("server", "", "TensorVault Server Address (e.g. localhost:8080)")
 	err := viper.BindPFlag("storage.path", rootCmd.PersistentFlags().Lookup("storage-path"))
 	if err != nil {
 		fmt.Println("Failed to bind flag:", err)
 		os.Exit(1)
+	}
+	err = viper.BindPFlag("remote.server", rootCmd.PersistentFlags().Lookup("server"))
+	if err != nil {
+		fmt.Println("Failed to bind flag:", err)
+		os.Exit(1)
+	}
+	viper.SetDefault("remote.server", "localhost:8080")
+	rootCmd.PersistentPostRunE = func(cmd *cobra.Command, args []string) error {
+		if remoteStore != nil {
+			fmt.Println("🔌 Closing connection...")
+			return remoteStore.Close()
+		}
+		return nil
 	}
 }
 
@@ -66,4 +81,27 @@ func initConfig() {
 		fmt.Println("Config error:", err)
 		os.Exit(1)
 	}
+}
+
+// GetRemoteClient 是获取远程连接的唯一入口 (Thread-safe isn't strictly needed for CLI, but logical safety is)
+func GetRemoteClient() (*client.TVClient, error) {
+	// 1. 如果已经初始化过，直接返回 (单例模式)
+	if remoteStore != nil {
+		return remoteStore, nil
+	}
+	addr := viper.GetString("remote.server")
+	// 2. 检查配置
+	if addr == "" {
+		return nil, fmt.Errorf("remote server address required (use --server localhost:8080)")
+	}
+
+	// 3. 初始化
+	c, err := client.NewTVClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. 赋值给全局变量
+	remoteStore = c
+	return remoteStore, nil
 }
