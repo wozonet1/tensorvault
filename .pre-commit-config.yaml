@@ -14,7 +14,9 @@ repos:
     rev: v0.5.1
     hooks:
       - id: go-fmt
+        exclude: '.*\.pb\.go$'
       - id: go-imports
+        exclude: '.*\.pb\.go$'
       # 注意：我们在本地不跑 golangci-lint，因为它太慢了，可能会阻塞 commit。
       # 我们把它留给 CI，或者你可以手动 make lint
 

@@ -1,11 +1,13 @@
 import os
-import grpc
-from typing import Generator, Dict, Any
+from typing import Any, Dict, Generator, cast
 
+import grpc
+
+from tensorvault.api.io import TensorVaultReader
+from tensorvault.core import chunker, hasher
 from tensorvault.grpc.stub_manager import StubManager
-from tensorvault.v1 import tensorvault_pb2
-from tensorvault.core import hasher, chunker
 from tensorvault.utils import errors
+from tensorvault.v1 import tensorvault_pb2
 
 
 class Client:
@@ -74,7 +76,7 @@ class Client:
                 # 如果没设置，它会是空字符串吗？
                 # 在 Python Protobuf 中，HasField 检查 optional 字段
                 if check_resp.HasField("merkle_root_hash"):
-                    return check_resp.merkle_root_hash
+                    return cast(str, check_resp.merkle_root_hash)
                 # 防御性逻辑：如果 Server 说存在但没给 Hash (不应发生)
                 raise errors.ServerError(
                     "Server indicated existence but returned no hash."
@@ -86,6 +88,29 @@ class Client:
         except grpc.RpcError as e:
             self._handle_grpc_error(e)
             return ""  # Should not reach here
+
+    def open(self, hash_str: str) -> TensorVaultReader:
+        """
+        打开一个远程文件流。
+
+        Args:
+            hash_str: 文件的 Merkle Root Hash。
+
+        Returns:
+            一个 file-like object，可以直接传给 pandas.read_csv() 等。
+        """
+        # 1. 构造请求
+        req = tensorvault_pb2.DownloadRequest(hash=hash_str)
+
+        # 2. 获取 gRPC 迭代器 (注意：此时还没有开始下载数据，Lazy execution)
+        try:
+            stream_iterator = self._stubs.data.Download(req)
+        except grpc.RpcError as e:
+            self._handle_grpc_error(e)
+            return None  # Not reachable
+
+        # 3. 包装成 IO 对象并返回
+        return TensorVaultReader(stream_iterator)
 
     def _perform_streaming_upload(self, file_path: str, sha256: str) -> str:
         """执行实际的流式上传 (内部方法)。"""
