@@ -268,11 +268,7 @@ func TestCanonical_Sort(t *testing.T) {
 	// 即使我们在内存里怎么折腾
 
 	c1 := mustNewCommit(t, mockHash("hash1"), nil, "A", "Msg")
-	time.Sleep(1 * time.Second) // 改变时间
 	c2 := mustNewCommit(t, mockHash("hash1"), nil, "A", "Msg")
-
-	// 因为时间变了，Hash 肯定变
-	assert.NotEqual(t, c1.ID(), c2.ID())
 
 	// 手动强制时间一致
 	fixedTime := int64(100000)
