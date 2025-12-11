@@ -38,7 +38,7 @@ func NewDataService(application *app.App) *DataService {
 // 客户端提供文件的 LinearHash 和 Size，服务端检查是否已有对应索引
 func (s *DataService) CheckFile(ctx context.Context, req *tvrpc.CheckFileRequest) (*tvrpc.CheckFileResponse, error) {
 	// 1. 参数转换与校验
-	linearHash := types.Hash(req.Sha256)
+	linearHash := types.LinearHash(req.Sha256)
 	if !linearHash.IsValid() {
 		// 尽管 Proto 有 validate，这里是最后一道防线
 		return nil, status.Error(codes.InvalidArgument, "invalid sha256 format")
@@ -119,7 +119,7 @@ func (s *DataService) Upload(stream grpc.ClientStreamingServer[tvrpc.UploadReque
 	}
 
 	// 校验 Meta 中的 Linear Hash 是否合法
-	clientLinearHash := types.Hash(meta.Sha256)
+	clientLinearHash := types.LinearHash(meta.Sha256)
 	if !clientLinearHash.IsValid() {
 		return status.Errorf(codes.InvalidArgument, "invalid sha256 in metadata: %s", meta.Sha256)
 	}
@@ -150,7 +150,7 @@ func (s *DataService) Upload(stream grpc.ClientStreamingServer[tvrpc.UploadReque
 	// --- Step 4: 完整性校验 (Integrity Check) ---
 	// 此时流已读完，Hasher 中已经有了全量数据的指纹
 	serverLinearHashStr := hex.EncodeToString(hasher.Sum(nil))
-	serverLinearHash := types.Hash(serverLinearHashStr)
+	serverLinearHash := types.LinearHash(serverLinearHashStr)
 
 	if serverLinearHash != clientLinearHash {
 		// 这是一个严重错误：数据在传输过程中损坏，或者客户端撒谎了

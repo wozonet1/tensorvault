@@ -62,7 +62,7 @@ func (CommitModel) TableName() string {
 // 使得客户端可以通过校验全量哈希来实现“秒传”
 type FileIndex struct {
 	// LinearHash: 文件的全量线性 SHA-256 (客户端计算，服务端校验)
-	LinearHash types.Hash `gorm:"primaryKey;type:char(64)"`
+	LinearHash types.LinearHash `gorm:"primaryKey;type:char(64)"`
 
 	// MerkleRoot: 对应的 Merkle DAG 根节点哈希 (FileNode ID)
 	MerkleRoot types.Hash `gorm:"type:char(64);not null;index"`

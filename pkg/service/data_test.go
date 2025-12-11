@@ -128,7 +128,7 @@ func TestDataService_Upload_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, exists, "FileNode should be in store")
 
-	idx, err := app.Repository.GetFileIndex(context.Background(), types.Hash(linearHash))
+	idx, err := app.Repository.GetFileIndex(context.Background(), types.LinearHash(linearHash))
 	require.NoError(t, err)
 	require.NotNil(t, idx, "Index should be created after successful upload")
 	assert.Equal(t, stream.Response.Hash, idx.MerkleRoot.String())
@@ -194,7 +194,7 @@ func TestDataService_Upload_IntegrityFail(t *testing.T) {
 	assert.Contains(t, st.Message(), "integrity check failed")
 
 	// 6. 验证副作用：索引表里不应该有这个假哈希的记录
-	idx, err := app.Repository.GetFileIndex(ctx, types.Hash(fakeHash))
+	idx, err := app.Repository.GetFileIndex(ctx, types.LinearHash(fakeHash))
 	require.NoError(t, err)
 	assert.Nil(t, idx, "Index should NOT be created for corrupted upload")
 }

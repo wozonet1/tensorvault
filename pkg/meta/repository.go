@@ -172,7 +172,7 @@ func (r *Repository) FindCommitsByAuthor(ctx context.Context, author string, lim
 
 // GetFileIndex 根据线性哈希查找 Merkle Root
 // 如果找不到，返回 (nil, nil) 而不是错误，因为这在业务上是正常的 Cache Miss
-func (r *Repository) GetFileIndex(ctx context.Context, linearHash types.Hash) (*FileIndex, error) {
+func (r *Repository) GetFileIndex(ctx context.Context, linearHash types.LinearHash) (*FileIndex, error) {
 	var idx FileIndex
 	err := r.db.GetConn().WithContext(ctx).
 		Where("linear_hash = ?", linearHash).
@@ -189,7 +189,7 @@ func (r *Repository) GetFileIndex(ctx context.Context, linearHash types.Hash) (*
 
 // SaveFileIndex 保存映射关系
 // 采用 "Insert if not exists" (ON CONFLICT DO NOTHING) 策略
-func (r *Repository) SaveFileIndex(ctx context.Context, linearHash, merkleRoot types.Hash, size int64) error {
+func (r *Repository) SaveFileIndex(ctx context.Context, linearHash types.LinearHash, merkleRoot types.Hash, size int64) error {
 	idx := FileIndex{
 		LinearHash: linearHash,
 		MerkleRoot: merkleRoot,
@@ -209,4 +209,29 @@ func (r *Repository) SaveFileIndex(ctx context.Context, linearHash, merkleRoot t
 		return fmt.Errorf("failed to save file index: %w", err)
 	}
 	return nil
+}
+
+func (r *Repository) GetSizesByMerkleRoots(ctx context.Context, hashes []types.Hash) (map[string]int64, error) {
+	var results []struct {
+		MerkleRoot string
+		SizeBytes  int64
+	}
+
+	// 批量查询优化
+	// DISTINCT 是为了防止同一个文件对应多个 LinearHash 导致结果重复
+	err := r.db.GetConn().WithContext(ctx).
+		Table("file_indices").
+		Select("DISTINCT merkle_root, size_bytes").
+		Where("merkle_root IN ?", hashes).
+		Scan(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	sizeMap := make(map[string]int64)
+	for _, res := range results {
+		sizeMap[res.MerkleRoot] = res.SizeBytes
+	}
+	return sizeMap, nil
 }

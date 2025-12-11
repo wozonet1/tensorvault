@@ -154,7 +154,7 @@ func TestRepository_FileIndex_Flow(t *testing.T) {
 	repo := setupTestRepo(t)
 	ctx := context.Background()
 
-	linearHash := mockHash("full_content_sha256")
+	linearHash := types.LinearHash(mockHash("full_content_sha256"))
 	merkleRoot := mockHash("dag_root")
 	size := int64(1024)
 
