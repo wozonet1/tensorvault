@@ -7,6 +7,25 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class BuildTreeRequest(_message.Message):
+    __slots__ = ()
+    class FileMapEntry(_message.Message):
+        __slots__ = ()
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    FILE_MAP_FIELD_NUMBER: _ClassVar[int]
+    file_map: _containers.ScalarMap[str, str]
+    def __init__(self, file_map: _Optional[_Mapping[str, str]] = ...) -> None: ...
+
+class BuildTreeResponse(_message.Message):
+    __slots__ = ()
+    TREE_HASH_FIELD_NUMBER: _ClassVar[int]
+    tree_hash: str
+    def __init__(self, tree_hash: _Optional[str] = ...) -> None: ...
+
 class CheckFileRequest(_message.Message):
     __slots__ = ()
     SHA256_FIELD_NUMBER: _ClassVar[int]

@@ -192,6 +192,11 @@ class MetaServiceStub(object):
                 request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitRequest.SerializeToString,
                 response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitResponse.FromString,
                 _registered_method=True)
+        self.BuildTree = channel.unary_unary(
+                '/tensorvault.v1.MetaService/BuildTree',
+                request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.BuildTreeRequest.SerializeToString,
+                response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.BuildTreeResponse.FromString,
+                _registered_method=True)
 
 
 class MetaServiceServicer(object):
@@ -212,6 +217,13 @@ class MetaServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def BuildTree(self, request, context):
+        """客户端上传完所有文件后，发送一个清单，服务端将其组装成 Merkle DAG 并返回根 Hash
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MetaServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -224,6 +236,11 @@ def add_MetaServiceServicer_to_server(servicer, server):
                     servicer.Commit,
                     request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitRequest.FromString,
                     response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitResponse.SerializeToString,
+            ),
+            'BuildTree': grpc.unary_unary_rpc_method_handler(
+                    servicer.BuildTree,
+                    request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.BuildTreeRequest.FromString,
+                    response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.BuildTreeResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -281,6 +298,33 @@ class MetaService(object):
             '/tensorvault.v1.MetaService/Commit',
             tensorvault_dot_v1_dot_tensorvault__pb2.CommitRequest.SerializeToString,
             tensorvault_dot_v1_dot_tensorvault__pb2.CommitResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def BuildTree(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/tensorvault.v1.MetaService/BuildTree',
+            tensorvault_dot_v1_dot_tensorvault__pb2.BuildTreeRequest.SerializeToString,
+            tensorvault_dot_v1_dot_tensorvault__pb2.BuildTreeResponse.FromString,
             options,
             channel_credentials,
             insecure,

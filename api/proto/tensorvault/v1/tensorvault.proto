@@ -26,9 +26,33 @@ service MetaService {
 
   // 提交一个新的版本
   rpc Commit(CommitRequest) returns (CommitResponse);
+
+  // 客户端上传完所有文件后，发送一个清单，服务端将其组装成 Merkle DAG 并返回根 Hash
+  rpc BuildTree(BuildTreeRequest) returns (BuildTreeResponse);
 }
 
 // --- 消息定义 ---
+message BuildTreeRequest {
+  // 文件映射表
+  // Key: 文件路径 (例如 "data/train.csv", "models/v1.pt")，支持多级目录
+  // Value: 文件的 Merkle Root Hash (必须是已存在于 TensorVault 中的对象)
+  map<string, string> file_map = 1 [
+    (buf.validate.field).map.min_pairs = 1,
+    (buf.validate.field).map.keys.string.min_len = 1,
+    (buf.validate.field).map.values.string.len = 64,
+    (buf.validate.field).map.values.string.pattern = "^[a-fA-F0-9]+$"
+  ];
+}
+
+// [新增] 构建树响应
+message BuildTreeResponse {
+  // 生成的 Merkle Tree 根节点 Hash
+  string tree_hash = 1 [
+    (buf.validate.field).string.len = 64,
+    (buf.validate.field).string.pattern = "^[a-fA-F0-9]+$"
+  ];
+}
+
 // [新增] 检查文件请求
 message CheckFileRequest {
   // 文件的全量线性 SHA-256 哈希 (用于查找秒传索引)

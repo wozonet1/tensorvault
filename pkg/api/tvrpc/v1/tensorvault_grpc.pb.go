@@ -210,8 +210,9 @@ var DataService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	MetaService_GetHead_FullMethodName = "/tensorvault.v1.MetaService/GetHead"
-	MetaService_Commit_FullMethodName  = "/tensorvault.v1.MetaService/Commit"
+	MetaService_GetHead_FullMethodName   = "/tensorvault.v1.MetaService/GetHead"
+	MetaService_Commit_FullMethodName    = "/tensorvault.v1.MetaService/Commit"
+	MetaService_BuildTree_FullMethodName = "/tensorvault.v1.MetaService/BuildTree"
 )
 
 // MetaServiceClient is the client API for MetaService service.
@@ -224,6 +225,8 @@ type MetaServiceClient interface {
 	GetHead(ctx context.Context, in *GetHeadRequest, opts ...grpc.CallOption) (*GetHeadResponse, error)
 	// 提交一个新的版本
 	Commit(ctx context.Context, in *CommitRequest, opts ...grpc.CallOption) (*CommitResponse, error)
+	// 客户端上传完所有文件后，发送一个清单，服务端将其组装成 Merkle DAG 并返回根 Hash
+	BuildTree(ctx context.Context, in *BuildTreeRequest, opts ...grpc.CallOption) (*BuildTreeResponse, error)
 }
 
 type metaServiceClient struct {
@@ -254,6 +257,16 @@ func (c *metaServiceClient) Commit(ctx context.Context, in *CommitRequest, opts 
 	return out, nil
 }
 
+func (c *metaServiceClient) BuildTree(ctx context.Context, in *BuildTreeRequest, opts ...grpc.CallOption) (*BuildTreeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BuildTreeResponse)
+	err := c.cc.Invoke(ctx, MetaService_BuildTree_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MetaServiceServer is the server API for MetaService service.
 // All implementations must embed UnimplementedMetaServiceServer
 // for forward compatibility.
@@ -264,6 +277,8 @@ type MetaServiceServer interface {
 	GetHead(context.Context, *GetHeadRequest) (*GetHeadResponse, error)
 	// 提交一个新的版本
 	Commit(context.Context, *CommitRequest) (*CommitResponse, error)
+	// 客户端上传完所有文件后，发送一个清单，服务端将其组装成 Merkle DAG 并返回根 Hash
+	BuildTree(context.Context, *BuildTreeRequest) (*BuildTreeResponse, error)
 	mustEmbedUnimplementedMetaServiceServer()
 }
 
@@ -279,6 +294,9 @@ func (UnimplementedMetaServiceServer) GetHead(context.Context, *GetHeadRequest) 
 }
 func (UnimplementedMetaServiceServer) Commit(context.Context, *CommitRequest) (*CommitResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Commit not implemented")
+}
+func (UnimplementedMetaServiceServer) BuildTree(context.Context, *BuildTreeRequest) (*BuildTreeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BuildTree not implemented")
 }
 func (UnimplementedMetaServiceServer) mustEmbedUnimplementedMetaServiceServer() {}
 func (UnimplementedMetaServiceServer) testEmbeddedByValue()                     {}
@@ -337,6 +355,24 @@ func _MetaService_Commit_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MetaService_BuildTree_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BuildTreeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetaServiceServer).BuildTree(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MetaService_BuildTree_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetaServiceServer).BuildTree(ctx, req.(*BuildTreeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MetaService_ServiceDesc is the grpc.ServiceDesc for MetaService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -351,6 +387,10 @@ var MetaService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Commit",
 			Handler:    _MetaService_Commit_Handler,
+		},
+		{
+			MethodName: "BuildTree",
+			Handler:    _MetaService_BuildTree_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
