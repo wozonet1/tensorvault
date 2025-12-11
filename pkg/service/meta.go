@@ -8,7 +8,9 @@ import (
 	tvrpc "tensorvault/pkg/api/tvrpc/v1"
 	"tensorvault/pkg/app"
 	"tensorvault/pkg/core"
+	"tensorvault/pkg/index"
 	"tensorvault/pkg/refs"
+	"tensorvault/pkg/treebuilder"
 	"tensorvault/pkg/types"
 
 	"buf.build/go/protovalidate"
@@ -111,5 +113,63 @@ func (s *MetaService) Commit(ctx context.Context, req *tvrpc.CommitRequest) (*tv
 
 	return &tvrpc.CommitResponse{
 		CommitHash: commitObj.ID().String(),
+	}, nil
+}
+
+// BuildTree 接收文件清单，构建 Merkle Tree
+func (s *MetaService) BuildTree(ctx context.Context, req *tvrpc.BuildTreeRequest) (*tvrpc.BuildTreeResponse, error) {
+	// 1. 基础校验
+	if err := s.validator.Validate(req); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	fmt.Printf("🏗️ [BuildTree] Building tree from %d files...\n", len(req.FileMap))
+
+	// 2. 构建内存索引 (Transient Index)
+	// 我们复用 index.Index 结构，但手动初始化，不绑定磁盘文件
+	tempIndex := &index.Index{
+		Entries: make(map[string]index.Entry),
+	}
+	var hashes []types.Hash
+	for _, h := range req.FileMap {
+		hashes = append(hashes, types.Hash(h))
+	}
+	// 3. 填充索引并校验存在性
+	sizeMap, err := s.app.Repository.GetSizesByMerkleRoots(ctx, hashes)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to query sizes: %v", err)
+	}
+	for path, hashStr := range req.FileMap {
+		size, found := sizeMap[hashStr]
+
+		// [兜底策略] 如果 SQL 里没查到（可能索引丢失，或者直接调 Upload 没写索引）
+		if !found {
+			// Option A: 报错 (严格模式)
+			// return nil, status.Errorf(codes.DataLoss, "metadata missing for hash %s", hashStr)
+
+			// Option B: 查 S3 (高可用模式 - 推荐)
+			// objInfo, err := s.app.Store.Stat(hashStr) ...
+			// size = objInfo.Size
+
+			// 这里为了 MVP 简单，先报错提示
+			return nil, status.Errorf(codes.NotFound, "size metadata not found for %s", hashStr)
+		}
+
+		// 添加到临时索引
+		tempIndex.Add(path, types.Hash(hashStr), size)
+	}
+
+	// 4. 执行构建 (Heavy Lifting)
+	// 复用 treebuilder，它会自动处理目录层级拆分、排序、Hash计算和持久化
+	builder := treebuilder.NewBuilder(s.app.Store)
+	rootHash, err := builder.Build(ctx, tempIndex)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to build merkle tree: %v", err)
+	}
+
+	fmt.Printf("✅ [BuildTree] Success. Root: %s\n", rootHash)
+
+	return &tvrpc.BuildTreeResponse{
+		TreeHash: rootHash.String(),
 	}, nil
 }

@@ -154,7 +154,7 @@ func catRemote(ctx context.Context, hashPrefix types.HashPrefix) error {
 }
 
 // --- 通用逻辑 ---
-
+// FIXME: 修复
 func downloadObject(ctx context.Context, hashStr types.HashPrefix, path string) error {
 	// 这里复用现有的 Exporter 逻辑 (本地) 或 Download RPC (远程)
 	// 为了简洁，此处略去具体实现，逻辑同上
