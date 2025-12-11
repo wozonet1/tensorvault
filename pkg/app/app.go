@@ -31,7 +31,9 @@ type App struct {
 
 // NewApp 是工厂函数，负责组装系统
 func NewApp() (*App, error) {
-
+	var metaDB *meta.DB
+	var repository *meta.Repository
+	var refMgr *refs.Manager
 	// 初始化上下文，用于 S3 连接检测等 (设置 5秒 超时防止卡死)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -60,11 +62,17 @@ func NewApp() (*App, error) {
 		SSLMode:  viper.GetString("database.sslmode"),
 	}
 
-	metaDB, err := meta.NewDB(ctx, dbCfg)
+	conn, err := meta.NewDB(ctx, dbCfg)
 	if err != nil {
-		// 为了方便调试，如果连不上 DB 暂时只打印警告，或者你可以选择直接报错
-		// 建议 MVP 阶段直接报错，强迫自己把环境配好
-		return nil, fmt.Errorf("failed to init metadata db: %w", err)
+		// [关键] 打印黄色的警告，而不是红色的错误
+		// 这里的判断逻辑可以更细致：如果配置明显是空的，甚至连警告都不打
+		if dbCfg.User != "" {
+			fmt.Printf("⚠️  Warning: Metadata DB not available (%v). Local commit/branching will be disabled.\n", err)
+		}
+	} else {
+		metaDB = conn
+		repository = meta.NewRepository(metaDB)
+		refMgr = refs.NewManager(repository)
 	}
 	// 2. 初始化存储后端 (Storage Backend)
 	store, err := initStore(ctx, localRepoPath)
@@ -78,15 +86,13 @@ func NewApp() (*App, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load index: %w", err)
 	}
-	metaRepo := meta.NewRepository(metaDB)
-	refMgr := refs.NewManager(metaRepo)
 
 	return &App{
 		Store:      store,
 		Index:      idx,
 		Refs:       refMgr,
 		RepoPath:   localRepoPath,
-		Repository: metaRepo,
+		Repository: repository,
 	}, nil
 }
 
