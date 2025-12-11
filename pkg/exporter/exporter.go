@@ -6,8 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"text/tabwriter"
-	"time"
 
 	"tensorvault/pkg/core"
 	"tensorvault/pkg/storage"
@@ -205,58 +203,6 @@ func (e *Exporter) PrintObject(ctx context.Context, hash types.Hash, writer io.W
 	default:
 		return fmt.Errorf("unknown object type: %s", header.TypeVal)
 	}
-}
-
-// --- 辅助打印函数 ---
-
-func printCommit(data []byte, w io.Writer) error {
-	var c core.Commit
-	if err := core.DecodeObject(data, &c); err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "Type:    Commit\n")
-	fmt.Fprintf(w, "Tree:    %s\n", c.TreeCid.Hash)
-	for _, p := range c.Parents {
-		fmt.Fprintf(w, "Parent:  %s\n", p.Hash)
-	}
-	fmt.Fprintf(w, "Author:  %s\n", c.Author)
-	fmt.Fprintf(w, "Time:    %s\n", time.Unix(c.Timestamp, 0).Format(time.RFC3339))
-	fmt.Fprintf(w, "\n%s\n", c.Message)
-	return nil
-}
-
-func printTree(data []byte, w io.Writer) error {
-	var t core.Tree
-	if err := core.DecodeObject(data, &t); err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "Type: Tree\n\n")
-
-	// 使用 tabwriter 对齐输出 (像 git ls-tree)
-	tw := tabwriter.NewWriter(w, 0, 0, 3, ' ', 0)
-	for _, entry := range t.Entries {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", entry.Type, entry.Cid.Hash[:8], entry.Name, fmtSize(entry.Size))
-	}
-	tw.Flush()
-	return nil
-}
-
-func printFileNode(data []byte, w io.Writer) error {
-	var f core.FileNode
-	if err := core.DecodeObject(data, &f); err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "Type:      FileNode (ADL)\n")
-	fmt.Fprintf(w, "TotalSize: %d bytes\n", f.TotalSize)
-	fmt.Fprintf(w, "Chunks:    %d\n", len(f.Chunks))
-	return nil
-}
-
-func fmtSize(s int64) string {
-	if s == 0 {
-		return "-"
-	}
-	return fmt.Sprintf("%d", s)
 }
 
 type RestoreCallback func(path string, hash types.Hash, size int64)
