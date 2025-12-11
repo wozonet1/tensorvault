@@ -188,14 +188,32 @@ func (s *DataService) Upload(stream grpc.ClientStreamingServer[tvrpc.UploadReque
 // Download 处理下载请求
 func (s *DataService) Download(req *tvrpc.DownloadRequest, stream grpc.ServerStreamingServer[tvrpc.DownloadResponse]) error {
 	// --- Step 1: 参数校验 ---
-	// 我们之前在 Proto 里加了 buf.validate，所以这里 req 应该是合法的
-	// 但为了保险，可以再次校验 Hash 格式
-	hash := types.Hash(req.Hash)
-	if !hash.IsValid() {
-		return status.Errorf(codes.InvalidArgument, "invalid hash format")
+	ctx := stream.Context()
+	inputHash := req.Hash
+
+	// [修改] 智能哈希解析：支持完整哈希和短哈希
+	var targetHash types.Hash
+
+	if len(inputHash) == 64 {
+		// 1. 如果是完整哈希，直接使用 (性能最优)
+		targetHash = types.Hash(inputHash)
+	} else {
+		// 2. 如果是短哈希，尝试扩展 (用户友好)
+		// 注意：ExpandHash 是 Store 接口的一部分，我们在 Phase 1 已经实现了
+		fullHash, err := s.app.Store.ExpandHash(ctx, types.HashPrefix(inputHash))
+		if err != nil {
+			if errors.Is(err, storage.ErrNotFound) {
+				return status.Errorf(codes.NotFound, "hash prefix %s not found", inputHash)
+			}
+			if errors.Is(err, storage.ErrAmbiguousHash) {
+				return status.Errorf(codes.InvalidArgument, "hash prefix %s is ambiguous", inputHash)
+			}
+			return status.Errorf(codes.Internal, "hash expansion failed: %v", err)
+		}
+		targetHash = fullHash
 	}
 
-	fmt.Printf("📦 [Download] Serving: %s\n", hash)
+	fmt.Printf("📦 [Download] Serving: %s (Expanded from: %s)\n", targetHash, inputHash)
 
 	// --- Step 2: 组装适配器 ---
 	// 把 gRPC stream 伪装成 io.Writer
@@ -209,13 +227,13 @@ func (s *DataService) Download(req *tvrpc.DownloadRequest, stream grpc.ServerStr
 	// 注意：Exporter 内部会检测 streamWriter 是否支持 WriteAt。
 	// 显然 GrpcStreamWriter 不支持，所以 Exporter 会自动降级为串行流式传输，
 	// 这正是 gRPC Server Streaming 所需要的模式。
-	err := exp.ExportFile(stream.Context(), hash, streamWriter)
+	err := exp.ExportFile(stream.Context(), targetHash, streamWriter)
 
 	// --- Step 4: 错误处理 ---
 	if err != nil {
 		// 映射核心层错误到 gRPC 状态码
 		if errors.Is(err, storage.ErrNotFound) {
-			return status.Errorf(codes.NotFound, "object %s not found", hash)
+			return status.Errorf(codes.NotFound, "object %s not found", targetHash)
 		}
 		return status.Errorf(codes.Internal, "export failed: %v", err)
 	}
