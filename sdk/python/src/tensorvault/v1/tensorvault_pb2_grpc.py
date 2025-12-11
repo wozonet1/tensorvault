@@ -187,6 +187,11 @@ class MetaServiceStub(object):
                 request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadRequest.SerializeToString,
                 response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadResponse.FromString,
                 _registered_method=True)
+        self.GetRef = channel.unary_unary(
+                '/tensorvault.v1.MetaService/GetRef',
+                request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetRefRequest.SerializeToString,
+                response_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetRefResponse.FromString,
+                _registered_method=True)
         self.Commit = channel.unary_unary(
                 '/tensorvault.v1.MetaService/Commit',
                 request_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.CommitRequest.SerializeToString,
@@ -205,6 +210,14 @@ class MetaServiceServicer(object):
 
     def GetHead(self, request, context):
         """获取当前的 HEAD 指向
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetRef(self, request, context):
+        """[新增] 获取任意引用的指向 (例如 "datasets/bindingdb")
+        这允许客户端通过名称查找 Hash，消除硬编码
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -231,6 +244,11 @@ def add_MetaServiceServicer_to_server(servicer, server):
                     servicer.GetHead,
                     request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadRequest.FromString,
                     response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadResponse.SerializeToString,
+            ),
+            'GetRef': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetRef,
+                    request_deserializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetRefRequest.FromString,
+                    response_serializer=tensorvault_dot_v1_dot_tensorvault__pb2.GetRefResponse.SerializeToString,
             ),
             'Commit': grpc.unary_unary_rpc_method_handler(
                     servicer.Commit,
@@ -271,6 +289,33 @@ class MetaService(object):
             '/tensorvault.v1.MetaService/GetHead',
             tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadRequest.SerializeToString,
             tensorvault_dot_v1_dot_tensorvault__pb2.GetHeadResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetRef(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/tensorvault.v1.MetaService/GetRef',
+            tensorvault_dot_v1_dot_tensorvault__pb2.GetRefRequest.SerializeToString,
+            tensorvault_dot_v1_dot_tensorvault__pb2.GetRefResponse.FromString,
             options,
             channel_credentials,
             insecure,

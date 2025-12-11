@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n tensorvault/v1/tensorvault.proto\x12\x0etensorvault.v1\x1a\x1b\x62uf/validate/validate.proto\"\xbf\x01\n\x10\x42uildTreeRequest\x12o\n\x08\x66ile_map\x18\x01 \x03(\x0b\x32-.tensorvault.v1.BuildTreeRequest.FileMapEntryB%\xbaH\"\x9a\x01\x1f\x08\x01\"\x04r\x02\x10\x01*\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\x07\x66ileMap\x1a:\n\x0c\x46ileMapEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"J\n\x11\x42uildTreeResponse\x12\x35\n\ttree_hash\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\x08treeHash\"a\n\x10\x43heckFileRequest\x12\x30\n\x06sha256\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\x06sha256\x12\x1b\n\x04size\x18\x02 \x01(\x03\x42\x07\xbaH\x04\"\x02 \x00R\x04size\"\x89\x01\n\x11\x43heckFileResponse\x12\x16\n\x06\x65xists\x18\x01 \x01(\x08R\x06\x65xists\x12G\n\x10merkle_root_hash\x18\x02 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@H\x00R\x0emerkleRootHash\x88\x01\x01\x42\x13\n\x11_merkle_root_hash\"k\n\rUploadRequest\x12.\n\x04meta\x18\x01 \x01(\x0b\x32\x18.tensorvault.v1.FileMetaH\x00R\x04meta\x12\x1f\n\nchunk_data\x18\x02 \x01(\x0cH\x00R\tchunkDataB\t\n\x07payload\"P\n\x08\x46ileMeta\x12\x12\n\x04path\x18\x01 \x01(\tR\x04path\x12\x30\n\x06sha256\x18\x02 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\x06sha256\"M\n\x0eUploadResponse\x12\x1c\n\x04hash\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\x04hash\x12\x1d\n\ntotal_size\x18\x02 \x01(\x03R\ttotalSize\"@\n\x0f\x44ownloadRequest\x12-\n\x04hash\x18\x01 \x01(\tB\x19\xbaH\x16r\x14\x10\x04\x18@2\x0e^[a-fA-F0-9]+$R\x04hash\"1\n\x10\x44ownloadResponse\x12\x1d\n\nchunk_data\x18\x01 \x01(\x0cR\tchunkData\"\x10\n\x0eGetHeadRequest\"a\n\x0fGetHeadResponse\x12\x1c\n\x04hash\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\x04hash\x12\x18\n\x07version\x18\x02 \x01(\x03R\x07version\x12\x16\n\x06\x65xists\x18\x03 \x01(\x08R\x06\x65xists\"\xc6\x01\n\rCommitRequest\x12!\n\x07message\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07message\x12\x16\n\x06\x61uthor\x18\x02 \x01(\tR\x06\x61uthor\x12%\n\ttree_hash\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\x08treeHash\x12\x32\n\rparent_hashes\x18\x04 \x03(\tB\r\xbaH\n\x92\x01\x07\"\x05r\x03\x98\x01@R\x0cparentHashes\x12\x1f\n\x0b\x62ranch_name\x18\x05 \x01(\tR\nbranchName\";\n\x0e\x43ommitResponse\x12)\n\x0b\x63ommit_hash\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\ncommitHash2\xfb\x01\n\x0b\x44\x61taService\x12P\n\tCheckFile\x12 .tensorvault.v1.CheckFileRequest\x1a!.tensorvault.v1.CheckFileResponse\x12I\n\x06Upload\x12\x1d.tensorvault.v1.UploadRequest\x1a\x1e.tensorvault.v1.UploadResponse(\x01\x12O\n\x08\x44ownload\x12\x1f.tensorvault.v1.DownloadRequest\x1a .tensorvault.v1.DownloadResponse0\x01\x32\xf4\x01\n\x0bMetaService\x12J\n\x07GetHead\x12\x1e.tensorvault.v1.GetHeadRequest\x1a\x1f.tensorvault.v1.GetHeadResponse\x12G\n\x06\x43ommit\x12\x1d.tensorvault.v1.CommitRequest\x1a\x1e.tensorvault.v1.CommitResponse\x12P\n\tBuildTree\x12 .tensorvault.v1.BuildTreeRequest\x1a!.tensorvault.v1.BuildTreeResponseB\x1eZ\x1ctensorvault/pkg/api/tvrpc/v1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n tensorvault/v1/tensorvault.proto\x12\x0etensorvault.v1\x1a\x1b\x62uf/validate/validate.proto\"\xbf\x01\n\x10\x42uildTreeRequest\x12o\n\x08\x66ile_map\x18\x01 \x03(\x0b\x32-.tensorvault.v1.BuildTreeRequest.FileMapEntryB%\xbaH\"\x9a\x01\x1f\x08\x01\"\x04r\x02\x10\x01*\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\x07\x66ileMap\x1a:\n\x0c\x46ileMapEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"J\n\x11\x42uildTreeResponse\x12\x35\n\ttree_hash\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\x08treeHash\"a\n\x10\x43heckFileRequest\x12\x30\n\x06sha256\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\x06sha256\x12\x1b\n\x04size\x18\x02 \x01(\x03\x42\x07\xbaH\x04\"\x02 \x00R\x04size\"\x89\x01\n\x11\x43heckFileResponse\x12\x16\n\x06\x65xists\x18\x01 \x01(\x08R\x06\x65xists\x12G\n\x10merkle_root_hash\x18\x02 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@H\x00R\x0emerkleRootHash\x88\x01\x01\x42\x13\n\x11_merkle_root_hash\"k\n\rUploadRequest\x12.\n\x04meta\x18\x01 \x01(\x0b\x32\x18.tensorvault.v1.FileMetaH\x00R\x04meta\x12\x1f\n\nchunk_data\x18\x02 \x01(\x0cH\x00R\tchunkDataB\t\n\x07payload\"P\n\x08\x46ileMeta\x12\x12\n\x04path\x18\x01 \x01(\tR\x04path\x12\x30\n\x06sha256\x18\x02 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\x06sha256\"M\n\x0eUploadResponse\x12\x1c\n\x04hash\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x98\x01@R\x04hash\x12\x1d\n\ntotal_size\x18\x02 \x01(\x03R\ttotalSize\"@\n\x0f\x44ownloadRequest\x12-\n\x04hash\x18\x01 \x01(\tB\x19\xbaH\x16r\x14\x10\x04\x18@2\x0e^[a-fA-F0-9]+$R\x04hash\"1\n\x10\x44ownloadResponse\x12\x1d\n\nchunk_data\x18\x01 \x01(\x0cR\tchunkData\"\x10\n\x0eGetHeadRequest\"\x7f\n\x0fGetHeadResponse\x12\x16\n\x06\x65xists\x18\x01 \x01(\x08R\x06\x65xists\x12\x31\n\x04hash\x18\x02 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@H\x00R\x04hash\x88\x01\x01\x12\x18\n\x07version\x18\x03 \x01(\x03R\x07versionB\x07\n\x05_hash\",\n\rGetRefRequest\x12\x1b\n\x04name\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04name\"~\n\x0eGetRefResponse\x12\x16\n\x06\x65xists\x18\x01 \x01(\x08R\x06\x65xists\x12\x31\n\x04hash\x18\x02 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@H\x00R\x04hash\x88\x01\x01\x12\x18\n\x07version\x18\x03 \x01(\x03R\x07versionB\x07\n\x05_hash\"\xd6\x01\n\rCommitRequest\x12!\n\x07message\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07message\x12\x16\n\x06\x61uthor\x18\x02 \x01(\tR\x06\x61uthor\x12\x35\n\ttree_hash\x18\x03 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\x08treeHash\x12\x32\n\rparent_hashes\x18\x04 \x03(\tB\r\xbaH\n\x92\x01\x07\"\x05r\x03\x98\x01@R\x0cparentHashes\x12\x1f\n\x0b\x62ranch_name\x18\x05 \x01(\tR\nbranchName\"K\n\x0e\x43ommitResponse\x12\x39\n\x0b\x63ommit_hash\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\x32\x0e^[a-fA-F0-9]+$\x98\x01@R\ncommitHash2\xfb\x01\n\x0b\x44\x61taService\x12P\n\tCheckFile\x12 .tensorvault.v1.CheckFileRequest\x1a!.tensorvault.v1.CheckFileResponse\x12I\n\x06Upload\x12\x1d.tensorvault.v1.UploadRequest\x1a\x1e.tensorvault.v1.UploadResponse(\x01\x12O\n\x08\x44ownload\x12\x1f.tensorvault.v1.DownloadRequest\x1a .tensorvault.v1.DownloadResponse0\x01\x32\xbd\x02\n\x0bMetaService\x12J\n\x07GetHead\x12\x1e.tensorvault.v1.GetHeadRequest\x1a\x1f.tensorvault.v1.GetHeadResponse\x12G\n\x06GetRef\x12\x1d.tensorvault.v1.GetRefRequest\x1a\x1e.tensorvault.v1.GetRefResponse\x12G\n\x06\x43ommit\x12\x1d.tensorvault.v1.CommitRequest\x1a\x1e.tensorvault.v1.CommitResponse\x12P\n\tBuildTree\x12 .tensorvault.v1.BuildTreeRequest\x1a!.tensorvault.v1.BuildTreeResponseB\x1eZ\x1ctensorvault/pkg/api/tvrpc/v1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -52,15 +52,19 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_DOWNLOADREQUEST'].fields_by_name['hash']._loaded_options = None
   _globals['_DOWNLOADREQUEST'].fields_by_name['hash']._serialized_options = b'\272H\026r\024\020\004\030@2\016^[a-fA-F0-9]+$'
   _globals['_GETHEADRESPONSE'].fields_by_name['hash']._loaded_options = None
-  _globals['_GETHEADRESPONSE'].fields_by_name['hash']._serialized_options = b'\272H\005r\003\230\001@'
+  _globals['_GETHEADRESPONSE'].fields_by_name['hash']._serialized_options = b'\272H\025r\0232\016^[a-fA-F0-9]+$\230\001@'
+  _globals['_GETREFREQUEST'].fields_by_name['name']._loaded_options = None
+  _globals['_GETREFREQUEST'].fields_by_name['name']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_GETREFRESPONSE'].fields_by_name['hash']._loaded_options = None
+  _globals['_GETREFRESPONSE'].fields_by_name['hash']._serialized_options = b'\272H\025r\0232\016^[a-fA-F0-9]+$\230\001@'
   _globals['_COMMITREQUEST'].fields_by_name['message']._loaded_options = None
   _globals['_COMMITREQUEST'].fields_by_name['message']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_COMMITREQUEST'].fields_by_name['tree_hash']._loaded_options = None
-  _globals['_COMMITREQUEST'].fields_by_name['tree_hash']._serialized_options = b'\272H\005r\003\230\001@'
+  _globals['_COMMITREQUEST'].fields_by_name['tree_hash']._serialized_options = b'\272H\025r\0232\016^[a-fA-F0-9]+$\230\001@'
   _globals['_COMMITREQUEST'].fields_by_name['parent_hashes']._loaded_options = None
   _globals['_COMMITREQUEST'].fields_by_name['parent_hashes']._serialized_options = b'\272H\n\222\001\007\"\005r\003\230\001@'
   _globals['_COMMITRESPONSE'].fields_by_name['commit_hash']._loaded_options = None
-  _globals['_COMMITRESPONSE'].fields_by_name['commit_hash']._serialized_options = b'\272H\005r\003\230\001@'
+  _globals['_COMMITRESPONSE'].fields_by_name['commit_hash']._serialized_options = b'\272H\025r\0232\016^[a-fA-F0-9]+$\230\001@'
   _globals['_BUILDTREEREQUEST']._serialized_start=82
   _globals['_BUILDTREEREQUEST']._serialized_end=273
   _globals['_BUILDTREEREQUEST_FILEMAPENTRY']._serialized_start=215
@@ -84,13 +88,17 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETHEADREQUEST']._serialized_start=977
   _globals['_GETHEADREQUEST']._serialized_end=993
   _globals['_GETHEADRESPONSE']._serialized_start=995
-  _globals['_GETHEADRESPONSE']._serialized_end=1092
-  _globals['_COMMITREQUEST']._serialized_start=1095
-  _globals['_COMMITREQUEST']._serialized_end=1293
-  _globals['_COMMITRESPONSE']._serialized_start=1295
-  _globals['_COMMITRESPONSE']._serialized_end=1354
-  _globals['_DATASERVICE']._serialized_start=1357
-  _globals['_DATASERVICE']._serialized_end=1608
-  _globals['_METASERVICE']._serialized_start=1611
-  _globals['_METASERVICE']._serialized_end=1855
+  _globals['_GETHEADRESPONSE']._serialized_end=1122
+  _globals['_GETREFREQUEST']._serialized_start=1124
+  _globals['_GETREFREQUEST']._serialized_end=1168
+  _globals['_GETREFRESPONSE']._serialized_start=1170
+  _globals['_GETREFRESPONSE']._serialized_end=1296
+  _globals['_COMMITREQUEST']._serialized_start=1299
+  _globals['_COMMITREQUEST']._serialized_end=1513
+  _globals['_COMMITRESPONSE']._serialized_start=1515
+  _globals['_COMMITRESPONSE']._serialized_end=1590
+  _globals['_DATASERVICE']._serialized_start=1593
+  _globals['_DATASERVICE']._serialized_end=1844
+  _globals['_METASERVICE']._serialized_start=1847
+  _globals['_METASERVICE']._serialized_end=2164
 # @@protoc_insertion_point(module_scope)

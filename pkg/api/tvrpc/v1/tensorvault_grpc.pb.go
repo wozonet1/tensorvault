@@ -211,6 +211,7 @@ var DataService_ServiceDesc = grpc.ServiceDesc{
 
 const (
 	MetaService_GetHead_FullMethodName   = "/tensorvault.v1.MetaService/GetHead"
+	MetaService_GetRef_FullMethodName    = "/tensorvault.v1.MetaService/GetRef"
 	MetaService_Commit_FullMethodName    = "/tensorvault.v1.MetaService/Commit"
 	MetaService_BuildTree_FullMethodName = "/tensorvault.v1.MetaService/BuildTree"
 )
@@ -223,6 +224,9 @@ const (
 type MetaServiceClient interface {
 	// 获取当前的 HEAD 指向
 	GetHead(ctx context.Context, in *GetHeadRequest, opts ...grpc.CallOption) (*GetHeadResponse, error)
+	// [新增] 获取任意引用的指向 (例如 "datasets/bindingdb")
+	// 这允许客户端通过名称查找 Hash，消除硬编码
+	GetRef(ctx context.Context, in *GetRefRequest, opts ...grpc.CallOption) (*GetRefResponse, error)
 	// 提交一个新的版本
 	Commit(ctx context.Context, in *CommitRequest, opts ...grpc.CallOption) (*CommitResponse, error)
 	// 客户端上传完所有文件后，发送一个清单，服务端将其组装成 Merkle DAG 并返回根 Hash
@@ -241,6 +245,16 @@ func (c *metaServiceClient) GetHead(ctx context.Context, in *GetHeadRequest, opt
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetHeadResponse)
 	err := c.cc.Invoke(ctx, MetaService_GetHead_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metaServiceClient) GetRef(ctx context.Context, in *GetRefRequest, opts ...grpc.CallOption) (*GetRefResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRefResponse)
+	err := c.cc.Invoke(ctx, MetaService_GetRef_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -275,6 +289,9 @@ func (c *metaServiceClient) BuildTree(ctx context.Context, in *BuildTreeRequest,
 type MetaServiceServer interface {
 	// 获取当前的 HEAD 指向
 	GetHead(context.Context, *GetHeadRequest) (*GetHeadResponse, error)
+	// [新增] 获取任意引用的指向 (例如 "datasets/bindingdb")
+	// 这允许客户端通过名称查找 Hash，消除硬编码
+	GetRef(context.Context, *GetRefRequest) (*GetRefResponse, error)
 	// 提交一个新的版本
 	Commit(context.Context, *CommitRequest) (*CommitResponse, error)
 	// 客户端上传完所有文件后，发送一个清单，服务端将其组装成 Merkle DAG 并返回根 Hash
@@ -291,6 +308,9 @@ type UnimplementedMetaServiceServer struct{}
 
 func (UnimplementedMetaServiceServer) GetHead(context.Context, *GetHeadRequest) (*GetHeadResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetHead not implemented")
+}
+func (UnimplementedMetaServiceServer) GetRef(context.Context, *GetRefRequest) (*GetRefResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRef not implemented")
 }
 func (UnimplementedMetaServiceServer) Commit(context.Context, *CommitRequest) (*CommitResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Commit not implemented")
@@ -333,6 +353,24 @@ func _MetaService_GetHead_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MetaServiceServer).GetHead(ctx, req.(*GetHeadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetaService_GetRef_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRefRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetaServiceServer).GetRef(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MetaService_GetRef_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetaServiceServer).GetRef(ctx, req.(*GetRefRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -383,6 +421,10 @@ var MetaService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetHead",
 			Handler:    _MetaService_GetHead_Handler,
+		},
+		{
+			MethodName: "GetRef",
+			Handler:    _MetaService_GetRef_Handler,
 		},
 		{
 			MethodName: "Commit",

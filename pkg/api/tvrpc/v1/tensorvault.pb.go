@@ -543,9 +543,9 @@ func (*GetHeadRequest) Descriptor() ([]byte, []int) {
 
 type GetHeadResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Hash          string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
-	Version       int64                  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"` // 用于乐观锁
-	Exists        bool                   `protobuf:"varint,3,opt,name=exists,proto3" json:"exists,omitempty"`
+	Exists        bool                   `protobuf:"varint,1,opt,name=exists,proto3" json:"exists,omitempty"`
+	Hash          *string                `protobuf:"bytes,2,opt,name=hash,proto3,oneof" json:"hash,omitempty"`
+	Version       int64                  `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"` // 用于乐观锁
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -580,9 +580,16 @@ func (*GetHeadResponse) Descriptor() ([]byte, []int) {
 	return file_tensorvault_v1_tensorvault_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *GetHeadResponse) GetHash() string {
+func (x *GetHeadResponse) GetExists() bool {
 	if x != nil {
-		return x.Hash
+		return x.Exists
+	}
+	return false
+}
+
+func (x *GetHeadResponse) GetHash() string {
+	if x != nil && x.Hash != nil {
+		return *x.Hash
 	}
 	return ""
 }
@@ -594,11 +601,110 @@ func (x *GetHeadResponse) GetVersion() int64 {
 	return 0
 }
 
-func (x *GetHeadResponse) GetExists() bool {
+// [新增] GetRef 相关消息
+type GetRefRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRefRequest) Reset() {
+	*x = GetRefRequest{}
+	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRefRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRefRequest) ProtoMessage() {}
+
+func (x *GetRefRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRefRequest.ProtoReflect.Descriptor instead.
+func (*GetRefRequest) Descriptor() ([]byte, []int) {
+	return file_tensorvault_v1_tensorvault_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetRefRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type GetRefResponse struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Exists bool                   `protobuf:"varint,1,opt,name=exists,proto3" json:"exists,omitempty"`
+	// 同样使用 optional
+	Hash          *string `protobuf:"bytes,2,opt,name=hash,proto3,oneof" json:"hash,omitempty"`
+	Version       int64   `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRefResponse) Reset() {
+	*x = GetRefResponse{}
+	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRefResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRefResponse) ProtoMessage() {}
+
+func (x *GetRefResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRefResponse.ProtoReflect.Descriptor instead.
+func (*GetRefResponse) Descriptor() ([]byte, []int) {
+	return file_tensorvault_v1_tensorvault_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetRefResponse) GetExists() bool {
 	if x != nil {
 		return x.Exists
 	}
 	return false
+}
+
+func (x *GetRefResponse) GetHash() string {
+	if x != nil && x.Hash != nil {
+		return *x.Hash
+	}
+	return ""
+}
+
+func (x *GetRefResponse) GetVersion() int64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
 }
 
 type CommitRequest struct {
@@ -622,7 +728,7 @@ type CommitRequest struct {
 
 func (x *CommitRequest) Reset() {
 	*x = CommitRequest{}
-	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[11]
+	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -634,7 +740,7 @@ func (x *CommitRequest) String() string {
 func (*CommitRequest) ProtoMessage() {}
 
 func (x *CommitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[11]
+	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -647,7 +753,7 @@ func (x *CommitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommitRequest.ProtoReflect.Descriptor instead.
 func (*CommitRequest) Descriptor() ([]byte, []int) {
-	return file_tensorvault_v1_tensorvault_proto_rawDescGZIP(), []int{11}
+	return file_tensorvault_v1_tensorvault_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CommitRequest) GetMessage() string {
@@ -694,7 +800,7 @@ type CommitResponse struct {
 
 func (x *CommitResponse) Reset() {
 	*x = CommitResponse{}
-	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[12]
+	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -706,7 +812,7 @@ func (x *CommitResponse) String() string {
 func (*CommitResponse) ProtoMessage() {}
 
 func (x *CommitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[12]
+	mi := &file_tensorvault_v1_tensorvault_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -719,7 +825,7 @@ func (x *CommitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommitResponse.ProtoReflect.Descriptor instead.
 func (*CommitResponse) Descriptor() ([]byte, []int) {
-	return file_tensorvault_v1_tensorvault_proto_rawDescGZIP(), []int{12}
+	return file_tensorvault_v1_tensorvault_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *CommitResponse) GetCommitHash() string {
@@ -765,28 +871,37 @@ const file_tensorvault_v1_tensorvault_proto_rawDesc = "" +
 	"\x10DownloadResponse\x12\x1d\n" +
 	"\n" +
 	"chunk_data\x18\x01 \x01(\fR\tchunkData\"\x10\n" +
-	"\x0eGetHeadRequest\"a\n" +
-	"\x0fGetHeadResponse\x12\x1c\n" +
-	"\x04hash\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x98\x01@R\x04hash\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\x03R\aversion\x12\x16\n" +
-	"\x06exists\x18\x03 \x01(\bR\x06exists\"\xc6\x01\n" +
+	"\x0eGetHeadRequest\"\x7f\n" +
+	"\x0fGetHeadResponse\x12\x16\n" +
+	"\x06exists\x18\x01 \x01(\bR\x06exists\x121\n" +
+	"\x04hash\x18\x02 \x01(\tB\x18\xbaH\x15r\x132\x0e^[a-fA-F0-9]+$\x98\x01@H\x00R\x04hash\x88\x01\x01\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\x03R\aversionB\a\n" +
+	"\x05_hash\",\n" +
+	"\rGetRefRequest\x12\x1b\n" +
+	"\x04name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\"~\n" +
+	"\x0eGetRefResponse\x12\x16\n" +
+	"\x06exists\x18\x01 \x01(\bR\x06exists\x121\n" +
+	"\x04hash\x18\x02 \x01(\tB\x18\xbaH\x15r\x132\x0e^[a-fA-F0-9]+$\x98\x01@H\x00R\x04hash\x88\x01\x01\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\x03R\aversionB\a\n" +
+	"\x05_hash\"\xd6\x01\n" +
 	"\rCommitRequest\x12!\n" +
 	"\amessage\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\amessage\x12\x16\n" +
-	"\x06author\x18\x02 \x01(\tR\x06author\x12%\n" +
-	"\ttree_hash\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x98\x01@R\btreeHash\x122\n" +
+	"\x06author\x18\x02 \x01(\tR\x06author\x125\n" +
+	"\ttree_hash\x18\x03 \x01(\tB\x18\xbaH\x15r\x132\x0e^[a-fA-F0-9]+$\x98\x01@R\btreeHash\x122\n" +
 	"\rparent_hashes\x18\x04 \x03(\tB\r\xbaH\n" +
 	"\x92\x01\a\"\x05r\x03\x98\x01@R\fparentHashes\x12\x1f\n" +
 	"\vbranch_name\x18\x05 \x01(\tR\n" +
-	"branchName\";\n" +
-	"\x0eCommitResponse\x12)\n" +
-	"\vcommit_hash\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x98\x01@R\n" +
+	"branchName\"K\n" +
+	"\x0eCommitResponse\x129\n" +
+	"\vcommit_hash\x18\x01 \x01(\tB\x18\xbaH\x15r\x132\x0e^[a-fA-F0-9]+$\x98\x01@R\n" +
 	"commitHash2\xfb\x01\n" +
 	"\vDataService\x12P\n" +
 	"\tCheckFile\x12 .tensorvault.v1.CheckFileRequest\x1a!.tensorvault.v1.CheckFileResponse\x12I\n" +
 	"\x06Upload\x12\x1d.tensorvault.v1.UploadRequest\x1a\x1e.tensorvault.v1.UploadResponse(\x01\x12O\n" +
-	"\bDownload\x12\x1f.tensorvault.v1.DownloadRequest\x1a .tensorvault.v1.DownloadResponse0\x012\xf4\x01\n" +
+	"\bDownload\x12\x1f.tensorvault.v1.DownloadRequest\x1a .tensorvault.v1.DownloadResponse0\x012\xbd\x02\n" +
 	"\vMetaService\x12J\n" +
 	"\aGetHead\x12\x1e.tensorvault.v1.GetHeadRequest\x1a\x1f.tensorvault.v1.GetHeadResponse\x12G\n" +
+	"\x06GetRef\x12\x1d.tensorvault.v1.GetRefRequest\x1a\x1e.tensorvault.v1.GetRefResponse\x12G\n" +
 	"\x06Commit\x12\x1d.tensorvault.v1.CommitRequest\x1a\x1e.tensorvault.v1.CommitResponse\x12P\n" +
 	"\tBuildTree\x12 .tensorvault.v1.BuildTreeRequest\x1a!.tensorvault.v1.BuildTreeResponseB\x1eZ\x1ctensorvault/pkg/api/tvrpc/v1b\x06proto3"
 
@@ -802,7 +917,7 @@ func file_tensorvault_v1_tensorvault_proto_rawDescGZIP() []byte {
 	return file_tensorvault_v1_tensorvault_proto_rawDescData
 }
 
-var file_tensorvault_v1_tensorvault_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_tensorvault_v1_tensorvault_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_tensorvault_v1_tensorvault_proto_goTypes = []any{
 	(*BuildTreeRequest)(nil),  // 0: tensorvault.v1.BuildTreeRequest
 	(*BuildTreeResponse)(nil), // 1: tensorvault.v1.BuildTreeResponse
@@ -815,27 +930,31 @@ var file_tensorvault_v1_tensorvault_proto_goTypes = []any{
 	(*DownloadResponse)(nil),  // 8: tensorvault.v1.DownloadResponse
 	(*GetHeadRequest)(nil),    // 9: tensorvault.v1.GetHeadRequest
 	(*GetHeadResponse)(nil),   // 10: tensorvault.v1.GetHeadResponse
-	(*CommitRequest)(nil),     // 11: tensorvault.v1.CommitRequest
-	(*CommitResponse)(nil),    // 12: tensorvault.v1.CommitResponse
-	nil,                       // 13: tensorvault.v1.BuildTreeRequest.FileMapEntry
+	(*GetRefRequest)(nil),     // 11: tensorvault.v1.GetRefRequest
+	(*GetRefResponse)(nil),    // 12: tensorvault.v1.GetRefResponse
+	(*CommitRequest)(nil),     // 13: tensorvault.v1.CommitRequest
+	(*CommitResponse)(nil),    // 14: tensorvault.v1.CommitResponse
+	nil,                       // 15: tensorvault.v1.BuildTreeRequest.FileMapEntry
 }
 var file_tensorvault_v1_tensorvault_proto_depIdxs = []int32{
-	13, // 0: tensorvault.v1.BuildTreeRequest.file_map:type_name -> tensorvault.v1.BuildTreeRequest.FileMapEntry
+	15, // 0: tensorvault.v1.BuildTreeRequest.file_map:type_name -> tensorvault.v1.BuildTreeRequest.FileMapEntry
 	5,  // 1: tensorvault.v1.UploadRequest.meta:type_name -> tensorvault.v1.FileMeta
 	2,  // 2: tensorvault.v1.DataService.CheckFile:input_type -> tensorvault.v1.CheckFileRequest
 	4,  // 3: tensorvault.v1.DataService.Upload:input_type -> tensorvault.v1.UploadRequest
 	7,  // 4: tensorvault.v1.DataService.Download:input_type -> tensorvault.v1.DownloadRequest
 	9,  // 5: tensorvault.v1.MetaService.GetHead:input_type -> tensorvault.v1.GetHeadRequest
-	11, // 6: tensorvault.v1.MetaService.Commit:input_type -> tensorvault.v1.CommitRequest
-	0,  // 7: tensorvault.v1.MetaService.BuildTree:input_type -> tensorvault.v1.BuildTreeRequest
-	3,  // 8: tensorvault.v1.DataService.CheckFile:output_type -> tensorvault.v1.CheckFileResponse
-	6,  // 9: tensorvault.v1.DataService.Upload:output_type -> tensorvault.v1.UploadResponse
-	8,  // 10: tensorvault.v1.DataService.Download:output_type -> tensorvault.v1.DownloadResponse
-	10, // 11: tensorvault.v1.MetaService.GetHead:output_type -> tensorvault.v1.GetHeadResponse
-	12, // 12: tensorvault.v1.MetaService.Commit:output_type -> tensorvault.v1.CommitResponse
-	1,  // 13: tensorvault.v1.MetaService.BuildTree:output_type -> tensorvault.v1.BuildTreeResponse
-	8,  // [8:14] is the sub-list for method output_type
-	2,  // [2:8] is the sub-list for method input_type
+	11, // 6: tensorvault.v1.MetaService.GetRef:input_type -> tensorvault.v1.GetRefRequest
+	13, // 7: tensorvault.v1.MetaService.Commit:input_type -> tensorvault.v1.CommitRequest
+	0,  // 8: tensorvault.v1.MetaService.BuildTree:input_type -> tensorvault.v1.BuildTreeRequest
+	3,  // 9: tensorvault.v1.DataService.CheckFile:output_type -> tensorvault.v1.CheckFileResponse
+	6,  // 10: tensorvault.v1.DataService.Upload:output_type -> tensorvault.v1.UploadResponse
+	8,  // 11: tensorvault.v1.DataService.Download:output_type -> tensorvault.v1.DownloadResponse
+	10, // 12: tensorvault.v1.MetaService.GetHead:output_type -> tensorvault.v1.GetHeadResponse
+	12, // 13: tensorvault.v1.MetaService.GetRef:output_type -> tensorvault.v1.GetRefResponse
+	14, // 14: tensorvault.v1.MetaService.Commit:output_type -> tensorvault.v1.CommitResponse
+	1,  // 15: tensorvault.v1.MetaService.BuildTree:output_type -> tensorvault.v1.BuildTreeResponse
+	9,  // [9:16] is the sub-list for method output_type
+	2,  // [2:9] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -851,13 +970,15 @@ func file_tensorvault_v1_tensorvault_proto_init() {
 		(*UploadRequest_Meta)(nil),
 		(*UploadRequest_ChunkData)(nil),
 	}
+	file_tensorvault_v1_tensorvault_proto_msgTypes[10].OneofWrappers = []any{}
+	file_tensorvault_v1_tensorvault_proto_msgTypes[12].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tensorvault_v1_tensorvault_proto_rawDesc), len(file_tensorvault_v1_tensorvault_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

@@ -84,13 +84,29 @@ class GetHeadRequest(_message.Message):
 
 class GetHeadResponse(_message.Message):
     __slots__ = ()
+    EXISTS_FIELD_NUMBER: _ClassVar[int]
     HASH_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
-    EXISTS_FIELD_NUMBER: _ClassVar[int]
+    exists: bool
     hash: str
     version: int
+    def __init__(self, exists: _Optional[bool] = ..., hash: _Optional[str] = ..., version: _Optional[int] = ...) -> None: ...
+
+class GetRefRequest(_message.Message):
+    __slots__ = ()
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    def __init__(self, name: _Optional[str] = ...) -> None: ...
+
+class GetRefResponse(_message.Message):
+    __slots__ = ()
+    EXISTS_FIELD_NUMBER: _ClassVar[int]
+    HASH_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
     exists: bool
-    def __init__(self, hash: _Optional[str] = ..., version: _Optional[int] = ..., exists: _Optional[bool] = ...) -> None: ...
+    hash: str
+    version: int
+    def __init__(self, exists: _Optional[bool] = ..., hash: _Optional[str] = ..., version: _Optional[int] = ...) -> None: ...
 
 class CommitRequest(_message.Message):
     __slots__ = ()

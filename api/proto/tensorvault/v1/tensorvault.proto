@@ -24,11 +24,17 @@ service MetaService {
   // 获取当前的 HEAD 指向
   rpc GetHead(GetHeadRequest) returns (GetHeadResponse);
 
+  // [新增] 获取任意引用的指向 (例如 "datasets/bindingdb")
+  // 这允许客户端通过名称查找 Hash，消除硬编码
+  rpc GetRef(GetRefRequest) returns (GetRefResponse);
+
   // 提交一个新的版本
   rpc Commit(CommitRequest) returns (CommitResponse);
 
   // 客户端上传完所有文件后，发送一个清单，服务端将其组装成 Merkle DAG 并返回根 Hash
   rpc BuildTree(BuildTreeRequest) returns (BuildTreeResponse);
+
+
 }
 
 // --- 消息定义 ---
@@ -116,11 +122,22 @@ message DownloadResponse {
 message GetHeadRequest {}
 
 message GetHeadResponse {
-  string hash = 1[(buf.validate.field).string.len = 64];
-  int64 version = 2; // 用于乐观锁
-  bool exists = 3;
+    bool exists = 1;
+
+  optional string hash = 2[(buf.validate.field).string.len = 64,   (buf.validate.field).string.pattern = "^[a-fA-F0-9]+$"];
+  int64 version = 3; // 用于乐观锁
+}
+// [新增] GetRef 相关消息
+message GetRefRequest {
+  string name = 1 [(buf.validate.field).string.min_len = 1];
 }
 
+message GetRefResponse {
+  bool exists = 1;
+  // 同样使用 optional
+  optional string hash = 2 [(buf.validate.field).string.len = 64,    (buf.validate.field).string.pattern = "^[a-fA-F0-9]+$"];
+  int64 version = 3;
+}
 message CommitRequest {
   // 1. 基础元数据
   string message = 1[(buf.validate.field).string.min_len = 1];
@@ -128,7 +145,7 @@ message CommitRequest {
 
   // 2. [新增] 核心数据指针 (Payload)
   // 客户端必须先计算出当前的目录树 Hash，告诉服务端："这是我现在的项目快照"
-  string tree_hash = 3 [(buf.validate.field).string.len = 64];
+  string tree_hash = 3 [(buf.validate.field).string.len = 64,    (buf.validate.field).string.pattern = "^[a-fA-F0-9]+$"];
 
   // 3. [新增] 历史关系 (History)
   // 明确指出这个 Commit 的父节点是谁。
@@ -141,5 +158,5 @@ message CommitRequest {
 }
 
 message CommitResponse {
-  string commit_hash = 1[(buf.validate.field).string.len = 64];
+  string commit_hash = 1[(buf.validate.field).string.len = 64,    (buf.validate.field).string.pattern = "^[a-fA-F0-9]+$"];
 }
