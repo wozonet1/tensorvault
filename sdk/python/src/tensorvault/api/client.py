@@ -3,6 +3,7 @@ from typing import Any, Dict, Generator, cast
 
 import grpc
 
+from tensorvault.api.index import Index
 from tensorvault.api.io import TensorVaultReader
 from tensorvault.core import chunker, hasher
 from tensorvault.grpc.stub_manager import StubManager
@@ -34,6 +35,64 @@ class Client:
         except grpc.RpcError as e:
             self._handle_grpc_error(e)
             return {}  # Should not reach here
+
+    def new_index(self) -> Index:
+        """创建一个新的内存暂存区 (Index) 用于批量提交文件。"""
+        return Index(self)
+
+    # [新增] 提交接口
+    def commit(
+        self,
+        tree_hash: str,
+        message: str,
+        branch: str = "HEAD",
+        author: str = "PythonSDK",
+    ) -> str:
+        """
+        创建一个 Commit。
+        自动获取当前 Branch 的 HEAD 作为父节点 (Linear History)。
+        """
+        # 1. 尝试获取当前 HEAD 作为 Parent
+        parent_hashes = []
+        # [修正] 不要用 try-except 包裹整个逻辑
+        # get_head 内部已经处理了 grpc 错误并抛出 TensorVaultError
+        # 如果是网络错误，让它抛出，中止提交，保护数据一致性
+        head_info = self.get_head()
+
+        # 只有在明确 "存在 HEAD" 时才添加父节点
+        # 如果 exists=False (Initial Commit)，自然跳过，逻辑是安全的
+        if head_info.get("exists") and head_info.get("hash"):
+            parent_hashes.append(head_info["hash"])
+
+        req = tensorvault_pb2.CommitRequest(
+            message=message,
+            author=author,
+            tree_hash=tree_hash,
+            branch_name=branch,
+            parent_hashes=parent_hashes,
+        )
+
+        try:
+            resp = self._stubs.meta.Commit(req)
+            return cast(str, resp.commit_hash)
+        except grpc.RpcError as e:
+            self._handle_grpc_error(e)
+            return ""
+
+    # [新增] 内部方法：构建树
+    def _build_tree(self, file_map: Dict[str, str]) -> str:
+        """
+        调用服务端的 BuildTree RPC。
+        Args:
+            file_map: { "path/to/file": "hash" }
+        """
+        req = tensorvault_pb2.BuildTreeRequest(file_map=file_map)
+        try:
+            resp = self._stubs.meta.BuildTree(req)
+            return cast(str, resp.tree_hash)
+        except grpc.RpcError as e:
+            self._handle_grpc_error(e)
+            return ""
 
     # --- Data Operations ---
 
@@ -107,7 +166,6 @@ class Client:
             stream_iterator = self._stubs.data.Download(req)
         except grpc.RpcError as e:
             self._handle_grpc_error(e)
-            return None  # Not reachable
 
         # 3. 包装成 IO 对象并返回
         return TensorVaultReader(stream_iterator)
@@ -132,7 +190,7 @@ class Client:
 
         # 发送请求 (阻塞等待直到结束)
         response = self._stubs.data.Upload(request_iterator())
-        return response.hash
+        return cast(str, response.hash)
 
     # --- Error Handling Helper ---
 

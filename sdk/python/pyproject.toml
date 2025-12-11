@@ -36,7 +36,12 @@ warn_return_any = true
 warn_unused_configs = true
 # 告诉 MyPy 源码根目录在哪里，解决 import 路径解析问题
 mypy_path = "src"
-exclude = ["^src/buf/"]
+exclude = [
+    "^src/buf/",      # 如果你决定不检查生成的 buf 代码
+    "build/",         # [新增] 排除构建产物
+    "dist/",          # [新增] 排除发布产物
+    "\\.egg-info/",   # [新增] 排除 egg-info
+]
 # --- 针对生成的代码的豁免规则 ---
 
 # 1. 忽略 tensorvault.v1 下生成的代码报错
