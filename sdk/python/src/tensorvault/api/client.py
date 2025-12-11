@@ -36,6 +36,20 @@ class Client:
             self._handle_grpc_error(e)
             return {}  # Should not reach here
 
+    def get_ref(self, name: str) -> str:
+        """
+        获取指定引用的 Hash。如果不存在，返回空字符串。
+        """
+        req = tensorvault_pb2.GetRefRequest(name=name)
+        try:
+            resp = self._stubs.meta.GetRef(req)
+            if resp.exists and resp.HasField("hash"):
+                return cast(str, resp.hash)
+            return ""
+        except grpc.RpcError as e:
+            self._handle_grpc_error(e)
+            return ""
+
     def new_index(self) -> Index:
         """创建一个新的内存暂存区 (Index) 用于批量提交文件。"""
         return Index(self)
