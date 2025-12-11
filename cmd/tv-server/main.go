@@ -57,7 +57,8 @@ func main() {
 		grpc.ChainStreamInterceptor(
 			server.StreamRecoveryInterceptor,
 			server.StreamLoggingInterceptor,
-		))
+		), grpc.MaxRecvMsgSize(1024*1024*1024),
+		grpc.MaxSendMsgSize(1024*1024*1024))
 
 	// 5. 注册服务 (Wiring Services)
 	// A. MetaService (Unary)

@@ -2,11 +2,13 @@ package client
 
 import (
 	"fmt"
+	"time"
 
 	tvrpc "tensorvault/pkg/api/tvrpc/v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 )
 
 // TVClient 封装了与 TensorVault 服务端的连接
@@ -25,9 +27,15 @@ func NewTVClient(addr string) (*TVClient, error) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
-			grpc.MaxCallRecvMsgSize(100*1024*1024), // 100MB
-			grpc.MaxCallSendMsgSize(100*1024*1024), // 100MB
+			grpc.MaxCallRecvMsgSize(1024*1024*1024), // 1GB
+			grpc.MaxCallSendMsgSize(1024*1024*1024), // 1GB
 		),
+		// [新增] 保持连接活跃
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                10 * time.Second,
+			Timeout:             20 * time.Second,
+			PermitWithoutStream: true,
+		}),
 	}
 
 	// [核心变更] 使用 NewClient 替代 DialContext

@@ -23,10 +23,17 @@ class StubManager:
         if self._channel is None:
             # 这里的 options 可以配置最大消息大小等
             options = [
-                ("grpc.max_send_message_length", 100 * 1024 * 1024),  # 100MB
-                ("grpc.max_receive_message_length", 100 * 1024 * 1024),
+                (
+                    "grpc.max_send_message_length",
+                    1024 * 1024 * 1024,
+                ),  # 1GB (原来是100MB)
+                ("grpc.max_receive_message_length", 1024 * 1024 * 1024),  # 1GB
+                ("grpc.max_metadata_size", 32 * 1024 * 1024),  # 32MB (防止元数据过大)
+                # [新增] 优化流控窗口，防止大文件传输卡顿
+                ("grpc.http2.max_pings_without_data", 0),
+                ("grpc.keepalive_permit_without_calls", 1),
             ]
-            # 目前 MVP 阶段使用 insecure channel
+            # TODO:目前 MVP 阶段使用 insecure channel
             self._channel = grpc.insecure_channel(self._target, options=options)
         return self._channel
 
