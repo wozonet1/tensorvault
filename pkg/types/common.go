@@ -5,7 +5,6 @@ package types
 // 这是一个“值对象”，应当是不可变的。
 type Hash string
 
-// 为什么好？可以绑定方法
 func (h Hash) String() string { return string(h) }
 
 // 验证 Hash 合法性

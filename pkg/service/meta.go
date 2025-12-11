@@ -48,16 +48,50 @@ func (s *MetaService) GetHead(ctx context.Context, req *tvrpc.GetHeadRequest) (*
 		if errors.Is(err, refs.ErrNoHead) {
 			return &tvrpc.GetHeadResponse{
 				Exists:  false,
-				Hash:    "",
+				Hash:    nil,
 				Version: 0,
 			}, nil
 		}
 		return nil, status.Errorf(codes.Internal, "failed to read HEAD: %v", err)
 	}
-
+	hashStr := hash.String()
 	return &tvrpc.GetHeadResponse{
 		Exists:  true,
-		Hash:    hash.String(),
+		Hash:    &hashStr,
+		Version: ver,
+	}, nil
+}
+
+// GetRef 获取指定引用的当前状态
+// 用于解析 "refs/heads/main" 或 "datasets/bindingdb" 等引用
+func (s *MetaService) GetRef(ctx context.Context, req *tvrpc.GetRefRequest) (*tvrpc.GetRefResponse, error) {
+	// 1. 参数校验
+	if err := s.validator.Validate(req); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	// 2. 查询引用逻辑
+	// 注意：s.app.Refs.GetRef 在底层遇到 ErrRefNotFound 时，会返回空 hash 和 nil error
+	// 这是我们在 pkg/refs/manager.go 中定义的行为
+	hash, ver, err := s.app.Refs.GetRef(ctx, req.Name)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to resolve ref %s: %v", req.Name, err)
+	}
+
+	// 3. 处理不存在的情况
+	if hash == "" {
+		return &tvrpc.GetRefResponse{
+			Exists:  false,
+			Hash:    nil, // optional 字段设为 nil
+			Version: 0,
+		}, nil
+	}
+
+	// 4. 返回存在的引用
+	hashStr := hash.String()
+	return &tvrpc.GetRefResponse{
+		Exists:  true,
+		Hash:    &hashStr, // 取地址赋值给 optional string
 		Version: ver,
 	}, nil
 }
