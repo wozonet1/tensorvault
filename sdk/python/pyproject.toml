@@ -26,8 +26,12 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]  # 告诉打包工具，源码在 src 目录下
+include = ["tensorvault*"]
+[tool.setuptools.package-dir]
+tensorvault = "src/tensorvault"
 
-
+[tool.pyright]
+include = ["src"]
 
 [tool.mypy]
 # 全局设置
