@@ -1,5 +1,5 @@
 import io
-from typing import Iterator
+from typing import Iterator, cast
 
 
 class TensorVaultReader(io.RawIOBase):
@@ -100,6 +100,43 @@ class TensorVaultReader(io.RawIOBase):
 
         self._position += len(data)
         return data
+
+    def read1(self, size: int = -1) -> bytes:
+        """
+        实现 BufferedIOBase.read1。
+        Pandas 的 C 引擎依赖这个方法来进行高效读取。
+        含义：从缓冲区返回数据；如果缓冲区为空，最多执行一次底层读取，不保证填满 size。
+        """
+        if self._closed:
+            raise ValueError("I/O operation on closed file.")
+
+        # 1. 如果缓冲区有数据，直接返回缓冲区的 (最多 size)
+        if self._buffer:
+            read_size = (
+                len(self._buffer) if size == -1 else min(size, len(self._buffer))
+            )
+            data = self._buffer[:read_size]
+            self._buffer = self._buffer[read_size:]
+            self._position += len(data)
+            return data
+
+        # 2. 如果缓冲区为空，从流中拉取一个 chunk (不循环等待)
+        try:
+            response = next(self._iter)
+            new_data = cast(bytes, response.chunk_data)
+        except StopIteration:
+            self._depleted = True
+            return b""
+        except Exception as e:
+            raise IOError(f"Stream interrupted: {e}") from e
+
+        # 3. 返回本次拉取的数据 (如果 size 限制，剩下的放回 buffer)
+        read_size = len(new_data) if size == -1 else min(size, len(new_data))
+        result = new_data[:read_size]
+        self._buffer = new_data[read_size:]
+
+        self._position += len(result)
+        return result
 
     def close(self):
         """关闭流资源"""
